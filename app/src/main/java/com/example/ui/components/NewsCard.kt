@@ -4,22 +4,37 @@ import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -27,7 +42,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.NewsArticle
 
@@ -40,38 +54,23 @@ fun NewsCard(
 ) {
     val context = LocalContext.current
 
-    val cardBgColor = Color(0xFF131927)
-    val cardBorderColor = Color(0xFF26334D)
-    val aiBoxBgColor = Color(0xFF1C2438)
-    val aiBoxBorderColor = Color(0xFF6366F1).copy(alpha = 0.35f)
-    val primaryTextColor = Color(0xFFF8FAFC)
-    val secondaryTextColor = Color(0xFF94A3B8)
-    val accentBlue = Color(0xFF3B82F6)
-
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = cardBgColor
-        ),
-        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .border(
-                width = 1.dp,
-                color = cardBorderColor,
-                shape = RoundedCornerShape(20.dp)
-            )
-            .clickable { onClick() }
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
             .testTag("news_card_${article.id}")
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // --- 1. MEDIA / HERO BANNER ---
+        Column {
             if (!article.imageUrl.isNullOrBlank()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(190.dp)
+                        .aspectRatio(16f / 9f)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     AsyncImage(
                         model = article.imageUrl,
@@ -79,341 +78,159 @@ fun NewsCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
-
-                    // Scrim gradient for contrast
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Black.copy(alpha = 0.45f),
-                                        Color.Transparent,
-                                        cardBgColor
-                                    )
-                                )
-                            )
-                    )
-
-                    // Overlays on image
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.76f),
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(5.dp),
+                        modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
                     ) {
-                        // Category Pill
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(accentBlue)
-                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        Text(
+                            text = article.category.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                        )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    if (article.imageUrl.isNullOrBlank()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = RoundedCornerShape(5.dp)
                         ) {
                             Text(
                                 text = article.category.uppercase(),
-                                fontSize = 10.sp,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                letterSpacing = 0.6.sp
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
                             )
-                        }
-
-                        // Source Count Badge
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color.Black.copy(alpha = 0.65f))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Public,
-                                    contentDescription = null,
-                                    tint = Color(0xFF60A5FA),
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Text(
-                                    text = "${article.sourceCount} Kaynak",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
-                            }
                         }
                     }
+                    Text(
+                        text = article.sourceName.ifBlank { "GündemAI haber akışı" },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = article.publishedAtFormatted,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
                 }
-            } else {
-                // Header fallback when no image exists
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF1E293B), cardBgColor)
-                            )
+
+                Text(
+                    text = article.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (article.summary.isNotBlank()) {
+                    Text(
+                        text = article.summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(16.dp)
                         )
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        Spacer(Modifier.width(7.dp))
+                        Text(
+                            text = "GündemAI analizi",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "%${article.confidenceScore} güven",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    AnalysisLine("Ne oldu?", article.whatHappened.ifBlank { article.summary })
+                    AnalysisLine("Neden önemli?", article.whyImportant)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(accentBlue)
-                                .padding(horizontal = 10.dp, vertical = 5.dp)
-                        ) {
-                            Text(
-                                text = article.category.uppercase(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                letterSpacing = 0.6.sp
-                            )
-                        }
-
                         Icon(
-                            imageVector = Icons.Default.Newspaper,
+                            imageVector = Icons.Default.Public,
                             contentDescription = null,
-                            tint = secondaryTextColor,
-                            modifier = Modifier.size(16.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
                         )
-                    }
-
-                    Text(
-                        text = "${article.sourceCount} Kaynak • ${article.publishedAtFormatted}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = secondaryTextColor
-                    )
-                }
-            }
-
-            // --- 2. CARD CONTENT BODY ---
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Source & Time Meta row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF10B981))
-                    )
-                    Text(
-                        text = article.sourceName.ifBlank { "Doğrulanmış Gündem Akışı" },
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF34D399),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    Text(
-                        text = "•",
-                        fontSize = 11.sp,
-                        color = secondaryTextColor
-                    )
-                    Text(
-                        text = article.publishedAtFormatted,
-                        fontSize = 11.sp,
-                        color = secondaryTextColor,
-                        maxLines = 1
-                    )
-                }
-
-                // Headline Title
-                Text(
-                    text = article.title,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryTextColor,
-                    lineHeight = 23.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                // --- 3. AI ANALYSIS CONTAINER ---
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(aiBoxBgColor)
-                        .border(
-                            width = 1.dp,
-                            color = aiBoxBorderColor,
-                            shape = RoundedCornerShape(14.dp)
+                        Text(
+                            text = "${article.sourceCount} kaynak",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        .padding(12.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // AI Box Header
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f, fill = false)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "AI Analizi",
-                                    tint = Color(0xFFA5B4FC),
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Text(
-                                    text = "AI Özeti & Etki Analizi",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFA5B4FC),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "%${article.confidenceScore} Güvenilirlik",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF34D399),
-                                    maxLines = 1
-                                )
-                            }
-                        }
-
-                        // Split What Happened / Why Important
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Left Column: Ne Oldu?
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "NE OLDU?",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF818CF8),
-                                    letterSpacing = 0.5.sp,
-                                    maxLines = 1
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = article.whatHappened.ifBlank { article.summary },
-                                    fontSize = 11.5.sp,
-                                    color = Color(0xFFE2E8F0),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    lineHeight = 15.sp
-                                )
-                            }
-
-                            // Divider line
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(36.dp)
-                                    .align(Alignment.CenterVertically)
-                                    .background(Color.White.copy(alpha = 0.08f))
-                            )
-
-                            // Right Column: Neden Önemli?
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "NEDEN ÖNEMLİ?",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF818CF8),
-                                    letterSpacing = 0.5.sp,
-                                    maxLines = 1
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = article.whyImportant.ifBlank { "Bu gelişme sektörde ve gündemde önemli etkiler yaratabilir." },
-                                    fontSize = 11.5.sp,
-                                    color = Color(0xFFE2E8F0),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    lineHeight = 15.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // --- 4. BOTTOM ACTION & VERIFICATION BAR ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f, fill = false)) {
                         VerificationBadge(
                             statusString = article.verificationStatus,
                             confidenceScore = article.confidenceScore
                         )
                     }
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = onBookmarkToggle,
-                            modifier = Modifier.size(40.dp)
-                        ) {
+                    Row {
+                        IconButton(onClick = onBookmarkToggle, modifier = Modifier.size(40.dp)) {
                             Icon(
                                 imageVector = if (article.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                                contentDescription = "Kaydet",
-                                tint = if (article.isBookmarked) accentBlue else secondaryTextColor,
-                                modifier = Modifier.size(20.dp)
+                                contentDescription = if (article.isBookmarked) "Kaydı kaldır" else "Haberi kaydet",
+                                tint = if (article.isBookmarked) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
                         IconButton(
                             onClick = {
-                                val sendIntent: Intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(
-                                        Intent.EXTRA_TEXT,
-                                        "${article.title}\n\nGündemAI ile oku: ${article.sourceUrl}"
-                                    )
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    putExtra(Intent.EXTRA_TEXT, "${article.title}\n\nGündemAI ile oku: ${article.sourceUrl}")
                                     type = "text/plain"
                                 }
-                                val shareIntent = Intent.createChooser(sendIntent, "Haberi Paylaş")
-                                context.startActivity(shareIntent)
+                                context.startActivity(Intent.createChooser(sendIntent, "Haberi paylaş"))
                             },
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "Paylaş",
-                                tint = secondaryTextColor,
-                                modifier = Modifier.size(20.dp)
+                                contentDescription = "Haberi paylaş",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -423,4 +240,35 @@ fun NewsCard(
     }
 }
 
-
+@Composable
+private fun AnalysisLine(label: String, text: String) {
+    if (text.isBlank()) return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 7.dp)
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.secondary)
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}

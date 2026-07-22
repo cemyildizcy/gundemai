@@ -1,6 +1,7 @@
 package com.example
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -57,6 +58,7 @@ class MainActivity : ComponentActivity() {
 
             val followedCategories by viewModel.followedCategories.collectAsStateWithLifecycle()
             val followedTopics by viewModel.followedTopics.collectAsStateWithLifecycle()
+            val notificationCategories by viewModel.notificationCategories.collectAsStateWithLifecycle()
 
             val userEmail by viewModel.userEmail.collectAsStateWithLifecycle()
             val userName by viewModel.userName.collectAsStateWithLifecycle()
@@ -102,6 +104,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     Scaffold(
+                        containerColor = MaterialTheme.colorScheme.background,
                         topBar = {
                             GundemTopBar(
                                 selectedCategory = selectedCategory,
@@ -149,11 +152,11 @@ class MainActivity : ComponentActivity() {
                             )
                             3 -> NotificationsScreen(
                                 notifications = notifications,
-                                followedCategories = followedCategories,
+                                followedCategories = notificationCategories,
                                 onCategoryToggle = { cat -> viewModel.toggleCategoryNotification(cat) },
                                 onNotificationClick = { articleId ->
                                     if (articleId != null) {
-                                        viewModel.selectArticle(articleId)
+                                        viewModel.openArticleFromNotification(articleId)
                                     }
                                 },
                                 onMarkRead = { id -> viewModel.markNotificationRead(id) },
@@ -193,5 +196,22 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        handleNotificationIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        val articleId = intent?.getStringExtra(EXTRA_ARTICLE_ID) ?: return
+        intent.removeExtra(EXTRA_ARTICLE_ID)
+        viewModel.openArticleFromNotification(articleId)
+    }
+
+    companion object {
+        const val EXTRA_ARTICLE_ID = "article_id"
     }
 }

@@ -102,3 +102,10 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
           channelId: live
           projectId: gundemai
+
+      - name: Send category notifications
+        if: steps.setup.outputs.ready == 'true'
+        working-directory: server
+        run: npm run notify:published
+        env:
+          GOOGLE_CLOUD_PROJECT: gundemai

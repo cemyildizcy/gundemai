@@ -50,7 +50,7 @@ fun OnboardingScreen(
             ) {
                 Button(
                     onClick = { onComplete(selectedCategories, selectedTopics) },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -58,7 +58,7 @@ fun OnboardingScreen(
                         .testTag("onboarding_start_button")
                 ) {
                     Text(
-                        text = "GündemAI'ye Başla ✨",
+                        text = "GündemAI'ye Başla",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -84,7 +84,7 @@ fun OnboardingScreen(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF0F172A)),
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         androidx.compose.foundation.Image(
@@ -126,7 +126,7 @@ fun OnboardingScreen(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.surfaceContainer
@@ -134,7 +134,7 @@ fun OnboardingScreen(
                             .border(
                                 1.dp,
                                 if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                RoundedCornerShape(20.dp)
+                                RoundedCornerShape(8.dp)
                             )
                             .clickable {
                                 selectedCategories = if (isSelected) {
@@ -199,7 +199,7 @@ fun OnboardingScreen(
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                         } else null,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(8.dp)
                     )
                 }
             }

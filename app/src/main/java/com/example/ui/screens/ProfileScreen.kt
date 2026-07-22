@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -66,13 +65,13 @@ fun ProfileScreen(
     val context = LocalContext.current
     val activity = context as? android.app.Activity
 
-    val bgColor = Color(0xFF0F172A)
-    val cardBgColor = Color(0xFF1E293B)
-    val cardBorderColor = Color(0xFF334155)
-    val accentBlue = Color(0xFF3B82F6)
-    val goldAccent = Color(0xFFF59E0B)
-    val primaryTextColor = Color(0xFFF8FAFC)
-    val secondaryTextColor = Color(0xFF94A3B8)
+    val bgColor = MaterialTheme.colorScheme.background
+    val cardBgColor = MaterialTheme.colorScheme.surface
+    val cardBorderColor = MaterialTheme.colorScheme.outlineVariant
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val goldAccent = MaterialTheme.colorScheme.tertiary
+    val primaryTextColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     // State variables
     var selectedPlanPeriod by remember { mutableStateOf(proPlanPeriod) } // "MONTHLY" or "YEARLY"
@@ -95,10 +94,10 @@ fun ProfileScreen(
         // --- 1. USER ACCOUNT & HESAP YÖNETİMİ CARD ---
         Card(
             colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(20.dp))
+                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -113,10 +112,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(54.dp)
                             .clip(CircleShape)
-                            .background(
-                                if (isProUser) Brush.linearGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706)))
-                                else Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8)))
-                            ),
+                            .background(if (isProUser) goldAccent else MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -189,9 +185,9 @@ fun ProfileScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF3B82F6).copy(alpha = 0.12f))
-                            .border(1.dp, Color(0xFF3B82F6).copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                             .padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -276,15 +272,15 @@ fun ProfileScreen(
         // --- 1.B FIREBASE AUTH & FIRESTORE REALTIME SUBSCRIPTION & REKLAMSIZ DENEYİM CARD ---
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = if (isProUser) Color(0xFF064E3B).copy(alpha = 0.9f) else Color(0xFF1E293B)
+                containerColor = if (isProUser) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
                     1.5.dp,
                     if (isProUser) Color(0xFF10B981) else Color(0xFFF59E0B).copy(alpha = 0.5f),
-                    RoundedCornerShape(20.dp)
+                    RoundedCornerShape(8.dp)
                 )
         ) {
             Column(
@@ -374,7 +370,7 @@ fun ProfileScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isProUser) Color(0xFF10B981) else accentBlue
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp),
@@ -412,15 +408,15 @@ fun ProfileScreen(
         // --- 2. GOOGLE PLAY IN-APP BILLING SUBSCRIPTION CARD ---
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = if (isProUser) Color(0xFF064E3B) else Color(0xFF1E1B4B)
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
                     1.5.dp,
-                    if (isProUser) Color(0xFF10B981) else Color(0xFF6366F1),
-                    RoundedCornerShape(20.dp)
+                    MaterialTheme.colorScheme.secondary,
+                    RoundedCornerShape(8.dp)
                 )
         ) {
             Column(
@@ -487,14 +483,14 @@ fun ProfileScreen(
                     else
                         "İsteyen kullanıcılar giriş yapmadan da reklamlı ücretsiz modda kullanabilir. Reklamsız satın almak isteyenler için Google Play In-App Subscription (Uygulama İçi Satın Alma) güvencesiyle hesabınıza tanımlanır.",
                     fontSize = 12.sp,
-                    color = Color(0xFFC7D2FE),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                     lineHeight = 18.sp
                 )
 
                 // Plan Perks Bullet Points
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     ProPerkRow("🚫 %100 Reklamsız Haber Okuma Deneyimi (AdMob Engellendi)")
-                    ProPerkRow("⚡ Takip edilen kategoriler için yeni haber bildirimleri")
+                    ProPerkRow("Takip edilen kategoriler için yeni haber bildirimleri")
                     ProPerkRow("🤖 Sunucuda hazırlanmış ortak yapay zekâ analizleri")
                     ProPerkRow("🔄 Google Play hesabıyla abonelik geri yükleme")
                 }
@@ -518,7 +514,7 @@ fun ProfileScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isProUser) Color(0xFF10B981) else goldAccent
                         ),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
@@ -547,7 +543,7 @@ fun ProfileScreen(
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         },
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(48.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                     ) {
@@ -563,10 +559,10 @@ fun ProfileScreen(
         // --- 3. GÖRÜNÜM TERCİHLERİ ---
         Card(
             colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(20.dp))
+                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -629,10 +625,10 @@ fun ProfileScreen(
         // --- 4. VERİ, ÖNBELLEK VE DÜZENLEME ---
         Card(
             colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(20.dp))
+                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -671,7 +667,7 @@ fun ProfileScreen(
                                 Toast.makeText(context, "Yerel haber ve arama önbelleği temizlendi.", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text("Temizle", fontSize = 12.sp)
@@ -683,7 +679,7 @@ fun ProfileScreen(
                 // Reset Onboarding Interests Button
                 OutlinedButton(
                     onClick = onResetOnboarding,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -696,10 +692,10 @@ fun ProfileScreen(
         // --- 5. DESTEK, BİLDİRİM VE YASAL ---
         Card(
             colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(20.dp))
+                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -877,7 +873,7 @@ fun ProfileScreen(
                         onNavigateToAuth()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Giriş Yap Ekranına Git", fontWeight = FontWeight.Bold)
                 }
@@ -943,7 +939,7 @@ fun ProfileScreen(
         AlertDialog(
             onDismissRequest = { showFeedbackDialog = false },
             containerColor = cardBgColor,
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(8.dp),
             title = { Text("Geri Bildirim Gönder", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryTextColor) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1002,12 +998,12 @@ private fun StatItem(number: String, label: String, icon: androidx.compose.ui.gr
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(18.dp))
-        Text(text = number, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF8FAFC), maxLines = 1)
+        Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+        Text(text = number, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
         Text(
             text = label,
             fontSize = 10.5.sp,
-            color = Color(0xFF94A3B8),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -1025,7 +1021,7 @@ private fun ProPerkRow(text: String) {
         Text(
             text = text,
             fontSize = 12.sp,
-            color = Color(0xFFE2E8F0),
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
             lineHeight = 16.sp
         )

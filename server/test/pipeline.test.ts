@@ -45,6 +45,7 @@ test("writes a valid analyzed article to the ready feed", async () => {
   const result = await pipeline.run();
 
   assert.equal(result.published, 1);
+  assert.equal(result.publishedArticles[0]?.id, (await store.listReady())[0]?.id);
   assert.equal(result.rejected, 0);
   assert.equal((await store.listReady()).length, 1);
 });

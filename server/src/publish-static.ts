@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { createNewsRuntime } from "./runtime/create-news-runtime.js";
@@ -13,7 +14,15 @@ async function main(): Promise<void> {
     outputDirectory,
     supportEmail: required("SUPPORT_EMAIL")
   });
-  console.log(JSON.stringify({ pipeline: pipelineResult, hosting: siteResult }));
+  const outboxPath = process.env.NOTIFICATION_OUTBOX_PATH ||
+    fileURLToPath(new URL("../notification-outbox.json", import.meta.url));
+  await writeFile(outboxPath, JSON.stringify(pipelineResult.publishedArticles, null, 2), "utf8");
+  const { publishedArticles: _, ...pipelineSummary } = pipelineResult;
+  console.log(JSON.stringify({
+    pipeline: pipelineSummary,
+    hosting: siteResult,
+    notificationsQueued: pipelineResult.publishedArticles.length
+  }));
 }
 
 function required(name: string): string {

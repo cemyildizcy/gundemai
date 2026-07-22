@@ -20,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -55,11 +54,11 @@ fun PlayBillingPaywallSheet(
     val monthlyProduct = availableProducts.firstOrNull { it.period == "MONTHLY" }
     val selectedProduct = if (selectedPlanPeriod == "YEARLY") yearlyProduct else monthlyProduct
 
-    val cardBgColor = Color(0xFF1E293B)
-    val primaryTextColor = Color(0xFFF8FAFC)
-    val secondaryTextColor = Color(0xFF94A3B8)
-    val goldAccent = Color(0xFFF59E0B)
-    val accentBlue = Color(0xFF3B82F6)
+    val cardBgColor = MaterialTheme.colorScheme.surface
+    val primaryTextColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val goldAccent = MaterialTheme.colorScheme.tertiary
+    val accentBlue = MaterialTheme.colorScheme.primary
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -90,7 +89,7 @@ fun PlayBillingPaywallSheet(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(Brush.linearGradient(listOf(goldAccent, Color(0xFFD97706)))),
+                                .background(goldAccent),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = Color.Black, modifier = Modifier.size(22.dp))
@@ -124,12 +123,12 @@ fun PlayBillingPaywallSheet(
                     val statusColor = when (connectionState) {
                         is BillingConnectionState.Connected -> Color(0xFF10B981)
                         is BillingConnectionState.Connecting -> goldAccent
-                        else -> Color(0xFF60A5FA)
+                        else -> MaterialTheme.colorScheme.primary
                     }
 
                     Surface(
                         color = statusColor.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(8.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
                     ) {
                         Row(
@@ -166,7 +165,7 @@ fun PlayBillingPaywallSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FeatureCheckItem("🚫 %100 Reklamsız Haber Okuma Deneyimi")
                     FeatureCheckItem("🤖 Sunucuda hazırlanmış ortak yapay zekâ analizleri")
-                    FeatureCheckItem("⚡ Son Dakika WorkManager Anlık Push Notifications")
+                    FeatureCheckItem("Son dakika haber bildirimleri")
                     FeatureCheckItem("🔄 Google Play hesabıyla tüm cihazlarda otomatik senkronizasyon")
                 }
 
@@ -188,9 +187,9 @@ fun PlayBillingPaywallSheet(
                     val isYearly = selectedPlanPeriod == "YEARLY"
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isYearly) Color(0xFF1E1B4B) else Color(0xFF0F172A)
+                            containerColor = if (isYearly) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .weight(1f)
                             .clickable(enabled = yearlyProduct != null) {
@@ -199,8 +198,8 @@ fun PlayBillingPaywallSheet(
                             }
                             .border(
                                 width = if (isYearly) 2.dp else 1.dp,
-                                color = if (isYearly) goldAccent else Color(0xFF334155),
-                                shape = RoundedCornerShape(16.dp)
+                                color = if (isYearly) goldAccent else MaterialTheme.colorScheme.outlineVariant,
+                                shape = RoundedCornerShape(8.dp)
                             )
                     ) {
                         Column(
@@ -226,9 +225,9 @@ fun PlayBillingPaywallSheet(
                     val isMonthly = selectedPlanPeriod == "MONTHLY"
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isMonthly) Color(0xFF1E1B4B) else Color(0xFF0F172A)
+                            containerColor = if (isMonthly) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .weight(1f)
                             .clickable(enabled = monthlyProduct != null) {
@@ -237,8 +236,8 @@ fun PlayBillingPaywallSheet(
                             }
                             .border(
                                 width = if (isMonthly) 2.dp else 1.dp,
-                                color = if (isMonthly) accentBlue else Color(0xFF334155),
-                                shape = RoundedCornerShape(16.dp)
+                                color = if (isMonthly) accentBlue else MaterialTheme.colorScheme.outlineVariant,
+                                shape = RoundedCornerShape(8.dp)
                             )
                     ) {
                         Column(
@@ -248,7 +247,7 @@ fun PlayBillingPaywallSheet(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF334155))
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text("ESNEK PLAN", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -265,8 +264,8 @@ fun PlayBillingPaywallSheet(
                 when (purchaseState) {
                     is BillingPurchaseState.Processing -> {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1B4B)),
-                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -282,7 +281,7 @@ fun PlayBillingPaywallSheet(
                     is BillingPurchaseState.Success -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF064E3B)),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -297,8 +296,8 @@ fun PlayBillingPaywallSheet(
                     }
                     is BillingPurchaseState.UserCanceled -> {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF334155)),
-                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -306,15 +305,15 @@ fun PlayBillingPaywallSheet(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF94A3B8))
-                                Text("Satın alma işlemi iptal edildi. Dilediğiniz zaman tekrar başlatabilirsiniz.", fontSize = 12.sp, color = Color(0xFFE2E8F0))
+                                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Satın alma işlemi iptal edildi. Dilediğiniz zaman tekrar başlatabilirsiniz.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
                     is BillingPurchaseState.Error -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -346,7 +345,7 @@ fun PlayBillingPaywallSheet(
                 if (userEmail.isNullOrBlank()) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -371,7 +370,7 @@ fun PlayBillingPaywallSheet(
                             onNavigateToAuth()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
@@ -400,7 +399,7 @@ fun PlayBillingPaywallSheet(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = goldAccent),
                         enabled = activity != null && selectedProduct != null && connectionState is BillingConnectionState.Connected,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
@@ -478,7 +477,7 @@ private fun FeatureCheckItem(text: String) {
         Text(
             text = text,
             fontSize = 12.sp,
-            color = Color(0xFFE2E8F0)
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

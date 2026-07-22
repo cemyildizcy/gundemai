@@ -50,6 +50,9 @@ interface NewsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotification(notification: UserNotification)
 
+    @Query("SELECT EXISTS(SELECT 1 FROM notifications WHERE id = :id)")
+    suspend fun notificationExists(id: String): Boolean
+
     @Query("UPDATE notifications SET isRead = 1 WHERE id = :id")
     suspend fun markNotificationRead(id: String)
 

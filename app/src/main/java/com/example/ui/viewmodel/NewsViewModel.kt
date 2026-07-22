@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.model.*
 import com.example.data.repository.NewsRepository
 import com.example.data.repository.UserPreferencesRepository
+import com.example.notification.NotificationTopicManager
 import com.example.worker.NewsBackgroundWorker
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -62,6 +63,10 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     val followedTopics = userPrefs.followedTopics.stateIn(
         viewModelScope, SharingStarted.Eagerly, setOf("openai", "google", "gemini", "fenerbahce")
+    )
+
+    val notificationCategories = userPrefs.notificationCategories.stateIn(
+        viewModelScope, SharingStarted.Eagerly, emptySet()
     )
 
     val authCompleted = userPrefs.authCompleted.stateIn(
@@ -244,6 +249,11 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
+        viewModelScope.launch {
+            notificationCategories.collectLatest { categories ->
+                runCatching { NotificationTopicManager.syncSubscriptions(categories) }
+            }
+        }
         refreshNews()
     }
 
@@ -302,20 +312,21 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleCategoryNotification(categoryName: String) {
         viewModelScope.launch {
-            val current = followedCategories.value.toMutableSet()
-            val wasAdded = if (current.contains(categoryName)) {
+            val current = notificationCategories.value.toMutableSet()
+            if (current.contains(categoryName)) {
                 current.remove(categoryName)
-                false
             } else {
                 current.add(categoryName)
-                true
             }
-            userPrefs.updateFollowedCategories(current)
+            userPrefs.updateNotificationCategories(current)
+        }
+    }
 
-            // If user turned on notifications for this category, trigger background worker service task
-            if (wasAdded) {
-                NewsBackgroundWorker.triggerInstantBackgroundSync(getApplication(), categoryName)
-            }
+    fun openArticleFromNotification(articleId: String) {
+        if (articleId.isBlank()) return
+        viewModelScope.launch {
+            repository.fetchAndRefreshNews(forceRefresh = true)
+            _selectedArticleId.value = articleId
         }
     }
 
@@ -336,6 +347,7 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             userPrefs.updateFollowedCategories(selectedCats)
             userPrefs.updateFollowedTopics(selectedTopics)
+            userPrefs.updateNotificationCategories(selectedCats - "Sana Özel")
             userPrefs.setOnboardingCompleted(true)
         }
     }

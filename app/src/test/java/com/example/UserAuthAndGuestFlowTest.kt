@@ -95,4 +95,13 @@ class UserAuthAndGuestFlowTest {
         assertTrue("Unavailable Firebase must fail closed", result is AuthResult.Error)
         assertNull(userPrefs.userEmail.first())
     }
+
+    @Test
+    fun `notification categories are stored separately from feed categories`() = runTest {
+        userPrefs.updateFollowedCategories(setOf("Teknoloji", "Ekonomi"))
+        userPrefs.updateNotificationCategories(setOf("Teknoloji"))
+
+        assertEquals(setOf("Teknoloji", "Ekonomi"), userPrefs.followedCategories.first())
+        assertEquals(setOf("Teknoloji"), userPrefs.notificationCategories.first())
+    }
 }

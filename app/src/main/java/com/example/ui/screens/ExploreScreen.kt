@@ -34,12 +34,12 @@ fun ExploreScreen(
     onSearchTagClick: (query: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = Color(0xFF0F172A)
-    val cardBgColor = Color(0xFF1E293B)
-    val cardBorderColor = Color(0xFF334155)
-    val accentBlue = Color(0xFF3B82F6)
-    val primaryTextColor = Color(0xFFF8FAFC)
-    val secondaryTextColor = Color(0xFF94A3B8)
+    val bgColor = MaterialTheme.colorScheme.background
+    val cardBgColor = MaterialTheme.colorScheme.surface
+    val cardBorderColor = MaterialTheme.colorScheme.outlineVariant
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val primaryTextColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     LazyColumn(
         modifier = modifier
@@ -77,9 +77,9 @@ fun ExploreScreen(
                         recentSearches.take(8).forEach { search ->
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(cardBgColor)
-                                    .border(1.dp, cardBorderColor, RoundedCornerShape(20.dp))
+                                    .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                                     .clickable { onSearchTagClick(search.query) }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
@@ -110,10 +110,10 @@ fun ExploreScreen(
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, cardBorderColor, RoundedCornerShape(16.dp))
+                    .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -152,12 +152,12 @@ fun ExploreScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(if (isFollowed) accentBlue else Color(0xFF0F172A))
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isFollowed) accentBlue else MaterialTheme.colorScheme.surfaceVariant)
                                     .border(
                                         1.dp,
                                         if (isFollowed) accentBlue else cardBorderColor,
-                                        RoundedCornerShape(20.dp)
+                                        RoundedCornerShape(8.dp)
                                     )
                                     .clickable { onTopicClick(topic.id) }
                                     .padding(horizontal = 12.dp, vertical = 7.dp)
@@ -196,7 +196,7 @@ fun ExploreScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "📡 Canlı Haber Kaynakları & Kanallar",
+                    text = "Canlı Haber Kaynakları",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryTextColor
@@ -205,10 +205,10 @@ fun ExploreScreen(
                 // Telegram Channels Card
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(16.dp))
+                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -247,9 +247,9 @@ fun ExploreScreen(
                             TelegramConfig.CHANNELS.forEach { channel ->
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(Color(0xFF0088CC).copy(alpha = 0.15f))
-                                        .border(1.dp, Color(0xFF0088CC).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                        .border(1.dp, Color(0xFF0088CC).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
                                         .clickable { onSearchTagClick(channel.displayName) }
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
@@ -279,10 +279,10 @@ fun ExploreScreen(
                 // National & Global RSS Feeds Card
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(16.dp))
+                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -321,9 +321,9 @@ fun ExploreScreen(
                             RssFeedConfig.SOURCES.forEach { source ->
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF0F172A))
-                                        .border(1.dp, cardBorderColor, RoundedCornerShape(12.dp))
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                                         .clickable { onSearchTagClick(source.name) }
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
@@ -355,11 +355,11 @@ fun ExploreScreen(
         // --- 4. GÜNDEM AI AKILLI DOĞRULAMA SİSTEMİ ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1B4B)),
-                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -372,7 +372,7 @@ fun ExploreScreen(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = Color(0xFFA5B4FC),
+                            tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
@@ -386,7 +386,7 @@ fun ExploreScreen(
                     Text(
                         text = "GündemAI, Telegram ve RSS kaynaklarından gelen haberleri çapraz kontrolden geçirir. Çelişkili ifadeleri ve doğrulanmamış iddiaları otomatik ayrıştırır.",
                         fontSize = 12.sp,
-                        color = Color(0xFFC7D2FE),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         lineHeight = 17.sp
                     )
                 }
@@ -398,4 +398,3 @@ fun ExploreScreen(
         }
     }
 }
-

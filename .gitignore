@@ -26,4 +26,5 @@ service-account*.json
 server/.env
 server/node_modules/
 server/dist/
+server/notification-outbox.json
 app/build/

@@ -1,5 +1,6 @@
 import { clusterRawArticles } from "../domain/clustering.js";
 import { ANALYSIS_VERSION, createReadyArticle } from "../domain/publication.js";
+import type { ReadyArticle } from "../domain/types.js";
 import type { NewsAnalyzer, NewsCollector, NewsStore } from "./contracts.js";
 
 export interface PipelineResult {
@@ -11,6 +12,7 @@ export interface PipelineResult {
   rejected: number;
   rejectionReasons: string[];
   collectorErrors: number;
+  publishedArticles: ReadyArticle[];
 }
 
 const REJECTION_RETRY_DELAY_MS = 6 * 60 * 60 * 1000;
@@ -60,6 +62,7 @@ export class NewsPipeline {
       rejected: 0,
       rejectionReasons: [] as string[]
     };
+    const publishedArticles: ReadyArticle[] = [];
     let analysisAttempts = 0;
     let dailyQuotaExhausted = false;
 
@@ -91,6 +94,7 @@ export class NewsPipeline {
         const analysis = await this.analyzer.analyze(cluster);
         const article = createReadyArticle(cluster, analysis, now);
         await this.store.saveReady(article);
+        publishedArticles.push(article);
         counters.published += 1;
       } catch (error) {
         const reason = sanitizeRejectionReason(error);
@@ -109,7 +113,8 @@ export class NewsPipeline {
       collected: rawArticles.length,
       clustered: allClusters.length,
       ...counters,
-      collectorErrors: collections.filter((result) => result.status === "rejected").length
+      collectorErrors: collections.filter((result) => result.status === "rejected").length,
+      publishedArticles
     };
   }
 }

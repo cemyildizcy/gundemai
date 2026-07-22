@@ -50,12 +50,12 @@ fun DetailScreen(
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) } // 0: AI Özeti & Analiz, 1: Orijinal İçerik & Kaynaklar
 
-    val bgColor = Color(0xFF0F172A)
-    val cardBgColor = Color(0xFF1E293B)
-    val cardBorderColor = Color(0xFF334155)
-    val accentBlue = Color(0xFF3B82F6)
-    val primaryTextColor = Color(0xFFF8FAFC)
-    val secondaryTextColor = Color(0xFF94A3B8)
+    val bgColor = MaterialTheme.colorScheme.background
+    val cardBgColor = MaterialTheme.colorScheme.surface
+    val cardBorderColor = MaterialTheme.colorScheme.outlineVariant
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val primaryTextColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     if (article == null) {
         Box(
@@ -151,7 +151,7 @@ fun DetailScreen(
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(article.sourceUrl))
                             context.startActivity(intent)
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -192,8 +192,8 @@ fun DetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(210.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .border(1.dp, cardBorderColor, RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                     ) {
                         AsyncImage(
                             model = article.imageUrl,
@@ -246,7 +246,7 @@ fun DetailScreen(
                         text = "${article.sourceCount} Kaynak",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF60A5FA),
+                        color = MaterialTheme.colorScheme.primary,
                         maxLines = 1
                     )
                     Text(
@@ -267,9 +267,9 @@ fun DetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(cardBgColor)
-                    .border(1.dp, cardBorderColor, RoundedCornerShape(14.dp))
+                    .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -338,11 +338,11 @@ fun DetailScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     // AI Disclaimer
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1B4B)),
-                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -352,13 +352,13 @@ fun DetailScreen(
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = "AI",
-                                tint = Color(0xFFA5B4FC),
+                                tint = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 text = "Bu analiz, haber kaynaklarındaki veriler işlenerek yapay zekâ tarafından sentezlenmiştir.",
                                 fontSize = 12.sp,
-                                color = Color(0xFFE0E7FF),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 lineHeight = 16.sp
                             )
                         }
@@ -366,28 +366,28 @@ fun DetailScreen(
 
                     // 1. Ne Oldu? (Kısa Özet)
                     AnalysisSectionCard(
-                        title = "📌 Ne Oldu?",
+                        title = "Ne Oldu?",
                         icon = Icons.Default.Info,
                         iconTint = accentBlue
                     ) {
                         Text(
                             text = article.whatHappened.ifBlank { article.summary },
                             fontSize = 14.sp,
-                            color = Color(0xFFE2E8F0),
+                            color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 22.sp
                         )
                     }
 
                     // 2. Neden Önemli?
                     AnalysisSectionCard(
-                        title = "💡 Neden Önemli?",
+                        title = "Neden Önemli?",
                         icon = Icons.Default.Lightbulb,
                         iconTint = Color(0xFFF59E0B)
                     ) {
                         Text(
                             text = article.whyImportant.ifBlank { "Bu gelişme bölgesel ve küresel ölçekte yakından takip edilmektedir." },
                             fontSize = 14.sp,
-                            color = Color(0xFFE2E8F0),
+                            color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 22.sp
                         )
                     }
@@ -403,7 +403,7 @@ fun DetailScreen(
                                 verifiedFacts.forEach { fact ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Text("•", fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
-                                        Text(fact, fontSize = 13.sp, color = Color(0xFFE2E8F0), lineHeight = 19.sp)
+                                        Text(fact, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
                                     }
                                 }
                             }
@@ -421,7 +421,7 @@ fun DetailScreen(
                                 unverifiedClaims.forEach { claim ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Text("•", fontWeight = FontWeight.Bold, color = Color(0xFFEC4899))
-                                        Text(claim, fontSize = 13.sp, color = Color(0xFFE2E8F0), lineHeight = 19.sp)
+                                        Text(claim, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
                                     }
                                 }
                             }
@@ -431,14 +431,14 @@ fun DetailScreen(
                     // 5. Haberde Eksik Bilgiler
                     if (article.missingInformation.isNotBlank()) {
                         AnalysisSectionCard(
-                            title = "🔍 Haberde Hangi Bilgiler Eksik?",
+                            title = "Haberde Hangi Bilgiler Eksik?",
                             icon = Icons.Default.Search,
-                            iconTint = Color(0xFF06B6D4)
+                            iconTint = MaterialTheme.colorScheme.tertiary
                         ) {
                             Text(
                                 text = article.missingInformation,
                                 fontSize = 13.sp,
-                                color = Color(0xFFE2E8F0),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 lineHeight = 19.sp
                             )
                         }
@@ -449,13 +449,13 @@ fun DetailScreen(
                         AnalysisSectionCard(
                             title = "📈 Olası Etkiler",
                             icon = Icons.Default.TrendingUp,
-                            iconTint = Color(0xFF8B5CF6)
+                            iconTint = MaterialTheme.colorScheme.secondary
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 possibleImpacts.forEach { impact ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("•", fontWeight = FontWeight.Bold, color = Color(0xFF8B5CF6))
-                                        Text(impact, fontSize = 13.sp, color = Color(0xFFE2E8F0), lineHeight = 19.sp)
+                                        Text("•", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+                                        Text(impact, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
                                     }
                                 }
                             }
@@ -465,7 +465,7 @@ fun DetailScreen(
                     // 7. Çelişkiler
                     if (contradictions.isNotEmpty()) {
                         AnalysisSectionCard(
-                            title = "⚠️ Kaynaklar Arasındaki Çelişkiler",
+                            title = "Kaynaklar Arasındaki Çelişkiler",
                             icon = Icons.Default.Warning,
                             iconTint = Color(0xFFEF4444)
                         ) {
@@ -473,7 +473,7 @@ fun DetailScreen(
                                 contradictions.forEach { item ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Text("•", fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
-                                        Text(item, fontSize = 13.sp, color = Color(0xFFE2E8F0), lineHeight = 19.sp)
+                                        Text(item, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
                                     }
                                 }
                             }
@@ -486,10 +486,10 @@ fun DetailScreen(
                     // Clean Typography Article Reader Card
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, cardBorderColor, RoundedCornerShape(16.dp))
+                            .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                     ) {
                         Column(
                             modifier = Modifier.padding(18.dp),
@@ -519,7 +519,7 @@ fun DetailScreen(
                             Text(
                                 text = article.summary.ifBlank { article.title },
                                 fontSize = 15.sp,
-                                color = Color(0xFFCBD5E1),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 25.sp,
                                 fontWeight = FontWeight.Normal
                             )
@@ -529,7 +529,7 @@ fun DetailScreen(
                                 Text(
                                     text = article.whatHappened,
                                     fontSize = 15.sp,
-                                    color = Color(0xFFCBD5E1),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     lineHeight = 25.sp
                                 )
                             }
@@ -560,15 +560,15 @@ private fun AnalysisSectionCard(
     content: @Composable () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(8.dp))
             .border(
                 width = 1.dp,
-                color = Color(0xFF334155),
-                shape = RoundedCornerShape(16.dp)
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(8.dp)
             )
     ) {
         Column(

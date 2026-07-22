@@ -15,6 +15,7 @@ class UserPreferencesRepository(private val context: Context) {
     private val AUTH_COMPLETED = booleanPreferencesKey("auth_completed")
     private val FOLLOWED_CATEGORIES = stringSetPreferencesKey("followed_categories")
     private val FOLLOWED_TOPICS = stringSetPreferencesKey("followed_topics")
+    private val NOTIFICATION_CATEGORIES = stringSetPreferencesKey("notification_categories")
     private val DARK_THEME_ENABLED = booleanPreferencesKey("dark_theme_enabled")
     private val USER_EMAIL = androidx.datastore.preferences.core.stringPreferencesKey("user_email")
     private val USER_NAME = androidx.datastore.preferences.core.stringPreferencesKey("user_name")
@@ -35,6 +36,10 @@ class UserPreferencesRepository(private val context: Context) {
 
     val followedTopics: Flow<Set<String>> = context.dataStore.data.map { prefs ->
         prefs[FOLLOWED_TOPICS] ?: setOf("openai", "google", "gemini", "fenerbahce", "yapay_zeka_trendler")
+    }
+
+    val notificationCategories: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[NOTIFICATION_CATEGORIES] ?: emptySet()
     }
 
     val darkThemeEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -92,6 +97,12 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun updateFollowedTopics(topics: Set<String>) {
         context.dataStore.edit { prefs ->
             prefs[FOLLOWED_TOPICS] = topics
+        }
+    }
+
+    suspend fun updateNotificationCategories(categories: Set<String>) {
+        context.dataStore.edit { prefs ->
+            prefs[NOTIFICATION_CATEGORIES] = categories
         }
     }
 

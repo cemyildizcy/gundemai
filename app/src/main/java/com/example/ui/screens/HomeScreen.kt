@@ -1,23 +1,33 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.model.NewsArticle
 import com.example.ui.components.AdMobTestNativeCard
 import com.example.ui.components.NewsCard
@@ -40,109 +50,91 @@ fun HomeScreen(
         onRefresh = onRefresh,
         modifier = modifier.fillMaxSize()
     ) {
-        if (articles.isEmpty() && isRefreshing) {
-            SkeletonLoadingFeed(count = 3, modifier = Modifier.padding(16.dp))
-        } else if (articles.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = syncError ?: "Henüz yayıma hazır haber bulunmuyor.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(onClick = onRefresh) { Text("Tekrar dene") }
+        when {
+            articles.isEmpty() && isRefreshing -> {
+                SkeletonLoadingFeed(count = 3, modifier = Modifier.padding(12.dp))
             }
-        } else {
-            val breakingNews = articles.firstOrNull { it.isBreaking }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (syncError != null) {
-                    item {
-                        Text(
-                            text = syncError,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            articles.isEmpty() -> {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = syncError ?: "Henüz yayıma hazır haber bulunmuyor.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    FilledTonalButton(onClick = onRefresh) { Text("Tekrar dene") }
                 }
-                // Breaking News Banner Top
-                if (breakingNews != null) {
-                    item {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEF4444)),
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onArticleClick(breakingNews.id) }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            }
+            else -> {
+                val breakingNews = articles.firstOrNull { it.isBreaking }
+                val feedArticles = breakingNews?.let { breaking ->
+                    articles.filterNot { it.id == breaking.id }
+                } ?: articles
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (syncError != null) {
+                        item {
+                            Surface(
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(8.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color.Black.copy(alpha = 0.2f))
-                                        .padding(8.dp)
+                                Text(
+                                    text = syncError,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (breakingNews != null) {
+                        item {
+                            Surface(
+                                onClick = { onArticleClick(breakingNews.id) },
+                                color = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Bolt,
-                                        contentDescription = "Son Dakika",
-                                        tint = Color(0xFFFDE047),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "SON DAKİKA GÜNDEM",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = Color(0xFFFDE047),
-                                        letterSpacing = 0.5.sp
-                                    )
-                                    Text(
-                                        text = breakingNews.title,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        maxLines = 2,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        lineHeight = 17.sp
-                                    )
+                                    Icon(Icons.Default.Bolt, contentDescription = null)
+                                    Column(Modifier.weight(1f)) {
+                                        Text("SON DAKİKA", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = breakingNews.title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                // Main News List with Native Ads every 6 items
-                itemsIndexed(
-                    items = articles,
-                    key = { _, article -> article.id }
-                ) { index, article ->
-                    NewsCard(
-                        article = article,
-                        onClick = { onArticleClick(article.id) },
-                        onBookmarkToggle = { onBookmarkToggle(article.id, article.isBookmarked) }
-                    )
-
-                    // Insert a consent-gated AdMob banner every 6 articles for free users.
-                    if (!isProUser && index > 0 && index % 6 == 0) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        AdMobTestNativeCard()
+                    itemsIndexed(feedArticles, key = { _, article -> article.id }) { index, article ->
+                        NewsCard(
+                            article = article,
+                            onClick = { onArticleClick(article.id) },
+                            onBookmarkToggle = { onBookmarkToggle(article.id, article.isBookmarked) }
+                        )
+                        if (!isProUser && index > 0 && index % 6 == 0) {
+                            Spacer(Modifier.height(4.dp))
+                            AdMobTestNativeCard()
+                        }
                     }
                 }
             }

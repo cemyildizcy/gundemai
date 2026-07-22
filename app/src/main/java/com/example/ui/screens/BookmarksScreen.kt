@@ -33,12 +33,12 @@ fun BookmarksScreen(
     onBookmarkToggle: (articleId: String, currentStatus: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = Color(0xFF0F172A)
-    val cardBgColor = Color(0xFF1E293B)
-    val cardBorderColor = Color(0xFF334155)
-    val accentBlue = Color(0xFF3B82F6)
-    val primaryTextColor = Color(0xFFF8FAFC)
-    val secondaryTextColor = Color(0xFF94A3B8)
+    val bgColor = MaterialTheme.colorScheme.background
+    val cardBgColor = MaterialTheme.colorScheme.surface
+    val cardBorderColor = MaterialTheme.colorScheme.outlineVariant
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val primaryTextColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Tümü") }
@@ -72,10 +72,10 @@ fun BookmarksScreen(
             ) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(20.dp))
+                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
                 ) {
                     Column(
                         modifier = Modifier
@@ -155,7 +155,7 @@ fun BookmarksScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(accentBlue.copy(alpha = 0.15f))
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
@@ -172,9 +172,9 @@ fun BookmarksScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(Color(0xFF10B981).copy(alpha = 0.12f))
-                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.25f), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -209,7 +209,7 @@ fun BookmarksScreen(
                                 }
                             },
                             singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = cardBgColor,
                                 unfocusedContainerColor = cardBgColor,
@@ -233,9 +233,9 @@ fun BookmarksScreen(
                                     val isSelected = selectedCategory == cat
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(20.dp))
+                                            .clip(RoundedCornerShape(8.dp))
                                             .background(if (isSelected) accentBlue else cardBgColor)
-                                            .border(1.dp, if (isSelected) accentBlue else cardBorderColor, RoundedCornerShape(20.dp))
+                                            .border(1.dp, if (isSelected) accentBlue else cardBorderColor, RoundedCornerShape(8.dp))
                                             .clickable { selectedCategory = cat }
                                             .padding(horizontal = 14.dp, vertical = 6.dp)
                                     ) {
@@ -284,4 +284,3 @@ fun BookmarksScreen(
         }
     }
 }
-

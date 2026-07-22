@@ -23,7 +23,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -62,12 +61,11 @@ fun AuthScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val primaryBg = Color(0xFF0F172A)
-    val cardBg = Color(0xFF1E293B)
-    val accentBlue = Color(0xFF3B82F6)
-    val accentPurple = Color(0xFF8B5CF6)
-    val textColor = Color(0xFFF8FAFC)
-    val subTextColor = Color(0xFF94A3B8)
+    val primaryBg = MaterialTheme.colorScheme.background
+    val cardBg = MaterialTheme.colorScheme.surface
+    val accentBlue = MaterialTheme.colorScheme.primary
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val subTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     LaunchedEffect(isRegisterMode) {
         errorMessage = null
@@ -96,8 +94,8 @@ fun AuthScreen(
                     modifier = Modifier
                         .size(84.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF0F172A))
-                        .border(2.dp, Brush.linearGradient(listOf(accentBlue, accentPurple)), CircleShape),
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(2.dp, accentBlue, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     androidx.compose.foundation.Image(
@@ -131,7 +129,7 @@ fun AuthScreen(
                     errorMessage?.let { msg ->
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -149,10 +147,10 @@ fun AuthScreen(
                 // 1. Google Quick Sign-In Option
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardBg),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(20.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -209,7 +207,7 @@ fun AuthScreen(
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(8.dp),
                             enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -227,7 +225,7 @@ fun AuthScreen(
                                 )
                                 Text(
                                     text = "Google ile Giriş Yap",
-                                    color = Color(0xFF1E293B),
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -241,22 +239,22 @@ fun AuthScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFF334155))
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
                     Text(
                         text = "  veya E-Posta ile  ",
                         fontSize = 12.sp,
                         color = subTextColor
                     )
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFF334155))
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
                 }
 
                 // 2. Email Auth Form Card
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardBg),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(20.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -266,8 +264,8 @@ fun AuthScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF0F172A))
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(4.dp)
                         ) {
                             Button(
@@ -312,7 +310,7 @@ fun AuthScreen(
                                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = accentBlue) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = accentBlue,
                                     unfocusedBorderColor = Color(0xFF475569),
@@ -333,7 +331,7 @@ fun AuthScreen(
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = accentBlue,
                                 unfocusedBorderColor = Color(0xFF475569),
@@ -363,7 +361,7 @@ fun AuthScreen(
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = accentBlue,
                                 unfocusedBorderColor = Color(0xFF475569),
@@ -424,7 +422,7 @@ fun AuthScreen(
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(8.dp),
                             enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -460,12 +458,12 @@ fun AuthScreen(
                                 text = "Giriş Yapmadan Misafir Olarak Devam Et",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF60A5FA)
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Icon(
                                 imageVector = Icons.Default.ArrowForward,
                                 contentDescription = null,
-                                tint = Color(0xFF60A5FA),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
                         }

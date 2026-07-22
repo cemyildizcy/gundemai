@@ -49,7 +49,7 @@ fun SkeletonLoadingFeed(
         repeat(count) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -60,7 +60,7 @@ fun SkeletonLoadingFeed(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(140.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(brush)
                     )
                     Box(

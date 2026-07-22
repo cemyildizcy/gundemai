@@ -24,7 +24,8 @@ import java.util.concurrent.TimeUnit
 data class NewsSyncResult(
     val newArticles: List<NewsArticle>,
     val totalCount: Int,
-    val fromCache: Boolean
+    val fromCache: Boolean,
+    val wasInitialSync: Boolean
 )
 
 class NewsRepository(
@@ -55,6 +56,8 @@ class NewsRepository(
     suspend fun insertNotification(notification: UserNotification) {
         newsDao.insertNotification(notification)
     }
+
+    suspend fun notificationExists(id: String): Boolean = newsDao.notificationExists(id)
 
     suspend fun markNotificationRead(id: String) {
         newsDao.markNotificationRead(id)
@@ -96,7 +99,12 @@ class NewsRepository(
                 val now = System.currentTimeMillis()
                 val cachedCount = newsDao.getAllArticlesCount()
                 if (!forceRefresh && cachedCount > 0 && now - lastFetchAt < FETCH_CACHE_TIMEOUT_MS) {
-                    return@withLock NewsSyncResult(emptyList(), cachedCount, fromCache = true)
+                    return@withLock NewsSyncResult(
+                        newArticles = emptyList(),
+                        totalCount = cachedCount,
+                        fromCache = true,
+                        wasInitialSync = false
+                    )
                 }
 
                 val response = readyNewsApi.getReadyNews(limit = MAX_READY_ARTICLES)
@@ -121,7 +129,12 @@ class NewsRepository(
                 if (mapped.isNotEmpty()) newsDao.insertArticles(mapped)
                 lastFetchAt = now
 
-                NewsSyncResult(newArticles, mapped.size, fromCache = false)
+                NewsSyncResult(
+                    newArticles = newArticles,
+                    totalCount = mapped.size,
+                    fromCache = false,
+                    wasInitialSync = cachedCount == 0
+                )
             }
         }
     }
