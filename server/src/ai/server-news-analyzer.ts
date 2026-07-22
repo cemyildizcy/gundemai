@@ -31,6 +31,26 @@ function requiredString(value: unknown, field: string): string {
   return value.trim();
 }
 
+function optionalText(value: unknown, fallback: string): string {
+  if (typeof value === "string") return value.trim() || fallback;
+  if (Array.isArray(value)) {
+    const text = value.filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .join(" ");
+    return text || fallback;
+  }
+  if (value && typeof value === "object") {
+    const text = Object.values(value as Record<string, unknown>)
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .join(" ");
+    return text || fallback;
+  }
+  return fallback;
+}
+
 function stringArray(value: unknown, field: string): string[] {
   if (value === null || value === undefined) return [];
   const values = Array.isArray(value) ? value : [value];
@@ -72,7 +92,7 @@ function parseAnalysis(raw: string): AiAnalysis {
     category,
     whatHappened: requiredString(data.what_happened, "what_happened"),
     whyImportant: requiredString(data.why_important, "why_important"),
-    missingInformation: requiredString(data.missing_information, "missing_information"),
+    missingInformation: optionalText(data.missing_information, "Kaynaklarda belirtilmedi."),
     verificationStatus,
     confidenceScore: confidenceScore(data.confidence_score),
     possibleImpacts: stringArray(data.possible_impacts, "possible_impacts"),
@@ -95,6 +115,7 @@ export function buildAnalysisPrompt(cluster: ArticleCluster): { system: string; 
     "Select one category from: Son Dakika, Yapay Zeka, Teknoloji, Turkiye, Dunya, Ekonomi, Finans, Kripto, Spor, Transfer, Bilim, Oyun, Girisimcilik, Kultur ve Sanat, Saglik.",
     "Use OFFICIAL_CONFIRMED only when an official source is included; MULTI_SOURCE_CONFIRMED only for at least two independent sources; otherwise prefer SINGLE_SOURCE_REPORT.",
     "confidence_score must be an integer from 50 to 100.",
+    "missing_information must be a non-empty Turkish string. Write 'Kaynaklarda belirtilmedi.' when no missing detail is apparent.",
     "possible_impacts, unverified_claims, contradictions, and verified_facts must always be JSON arrays of strings. Use [] when there are no items.",
     "Required keys: title, summary, category, what_happened, why_important, missing_information, verification_status, confidence_score, possible_impacts, unverified_claims, contradictions, verified_facts."
   ].join("\n");
