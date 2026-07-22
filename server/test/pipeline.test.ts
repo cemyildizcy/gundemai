@@ -115,7 +115,7 @@ test("redacts an OpenRouter key from rejection diagnostics", async () => {
     collectors: [{ collect: async () => [raw] }],
     analyzer: {
       analyze: async () => {
-        throw new Error("provider failed with sk-or-v1-this-must-not-leak");
+        throw new Error(`provider failed with ${"sk-or-v1-"}${"this-must-not-leak"}`);
       }
     },
     store

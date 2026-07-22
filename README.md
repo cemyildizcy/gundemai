@@ -13,7 +13,7 @@ Akış: kaynakları topla -> aynı olayı kümele -> kategoriyi belirle -> AI an
 
 ## Ücretsiz Kurulum
 
-Firebase projesi Spark planda kalabilir. Cloud Run, Cloud Functions veya ücretli zamanlayıcı kullanılmaz. Otomatik görev public GitHub deposunda beş dakikada bir çalışır ve sonuç https://gundemai.web.app/v1/news adresinde yayınlanır.
+Firebase projesi Spark planda kalabilir. Cloud Run, Cloud Functions veya ücretli zamanlayıcı kullanılmaz. Otomatik görev public GitHub deposunda beş dakikada bir çalışır; analizde ücretsiz Cloudflare Workers AI'ı, gerektiğinde OpenRouter yedeğini kullanır ve sonucu https://gundemai.web.app/v1/news adresinde yayınlar.
 
 Adım adım kullanıcı rehberi için UCRETSIZ_KURULUM.md dosyasını açın.
 

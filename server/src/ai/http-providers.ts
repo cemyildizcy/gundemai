@@ -1,15 +1,63 @@
 import type { AiTextProvider } from "./server-news-analyzer.js";
 
-async function fetchJson(url: string, init: RequestInit, timeoutMs: number): Promise<unknown> {
+async function fetchJson(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  request: typeof fetch = fetch
+): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { ...init, signal: controller.signal });
+    const response = await request(url, { ...init, signal: controller.signal });
     const body = await response.text();
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${body.slice(0, 300)}`);
     return JSON.parse(body) as unknown;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+export class CloudflareWorkersAiProvider implements AiTextProvider {
+  readonly name: string;
+
+  constructor(
+    private readonly accountId: string,
+    private readonly apiToken: string,
+    private readonly model: string,
+    private readonly timeoutMs = 70_000,
+    private readonly request: typeof fetch = fetch
+  ) {
+    this.name = `cloudflare:${model}`;
+  }
+
+  async generate(input: { system: string; user: string }): Promise<string> {
+    const modelPath = this.model.split("/").map(encodeURIComponent).join("/");
+    const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(this.accountId)}/ai/run/${modelPath}`;
+    const body = await fetchJson(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: input.system },
+          { role: "user", content: input.user }
+        ],
+        temperature: 0.1,
+        max_completion_tokens: 1600,
+        response_format: { type: "json_object" }
+      })
+    }, this.timeoutMs, this.request) as {
+      result?: {
+        response?: string;
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+    };
+    const content = body.result?.choices?.[0]?.message?.content ?? body.result?.response;
+    if (!content) throw new Error("Cloudflare Workers AI returned no content");
+    return content;
   }
 }
 

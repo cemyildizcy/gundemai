@@ -1,6 +1,10 @@
 import { Firestore } from "@google-cloud/firestore";
 
-import { GeminiProvider, OpenRouterProvider } from "../ai/http-providers.js";
+import {
+  CloudflareWorkersAiProvider,
+  GeminiProvider,
+  OpenRouterProvider
+} from "../ai/http-providers.js";
 import { ServerNewsAnalyzer, type AiTextProvider } from "../ai/server-news-analyzer.js";
 import { GNewsCollector, NewsApiCollector } from "../collectors/api-collectors.js";
 import { RssCollector } from "../collectors/rss-collector.js";
@@ -18,11 +22,25 @@ export const DEFAULT_OPENROUTER_MODELS = [
   "z-ai/glm-4.5-air:free"
 ] as const;
 
+export const DEFAULT_CLOUDFLARE_MODELS = [
+  "@cf/google/gemma-4-26b-a4b-it",
+  "@cf/zai-org/glm-4.7-flash"
+] as const;
+
 export function createNewsRuntime(environment: NodeJS.ProcessEnv = process.env): {
   store: FirestoreNewsStore;
   pipeline: NewsPipeline;
 } {
   const providers: AiTextProvider[] = [];
+  if (environment.CLOUDFLARE_ACCOUNT_ID && environment.CLOUDFLARE_API_TOKEN) {
+    for (const model of cloudflareModels(environment)) {
+      providers.push(new CloudflareWorkersAiProvider(
+        environment.CLOUDFLARE_ACCOUNT_ID,
+        environment.CLOUDFLARE_API_TOKEN,
+        model
+      ));
+    }
+  }
   if (environment.OPENROUTER_API_KEY) {
     for (const model of openRouterModels(environment)) {
       providers.push(new OpenRouterProvider(environment.OPENROUTER_API_KEY, model));
@@ -35,7 +53,7 @@ export function createNewsRuntime(environment: NodeJS.ProcessEnv = process.env):
     ));
   }
   if (providers.length === 0) {
-    throw new Error("Configure OPENROUTER_API_KEY or GEMINI_API_KEY");
+    throw new Error("Configure Cloudflare Workers AI, OpenRouter, or Gemini");
   }
 
   const collectors: NewsCollector[] = [
@@ -75,4 +93,15 @@ export function openRouterModels(environment: NodeJS.ProcessEnv): string[] {
       ? [legacySingleModel]
       : [...DEFAULT_OPENROUTER_MODELS];
   return [...new Set(values.map((model) => model.trim()).filter(Boolean))].slice(0, 10);
+}
+
+export function cloudflareModels(environment: NodeJS.ProcessEnv): string[] {
+  const configured = environment.CLOUDFLARE_MODELS?.trim();
+  const legacySingleModel = environment.CLOUDFLARE_MODEL?.trim();
+  const values = configured
+    ? configured.split(",")
+    : legacySingleModel
+      ? [legacySingleModel]
+      : [...DEFAULT_CLOUDFLARE_MODELS];
+  return [...new Set(values.map((model) => model.trim()).filter(Boolean))].slice(0, 5);
 }

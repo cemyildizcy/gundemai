@@ -2,9 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  cloudflareModels,
+  DEFAULT_CLOUDFLARE_MODELS,
   DEFAULT_OPENROUTER_MODELS,
   openRouterModels
 } from "../src/runtime/create-news-runtime.js";
+
+test("uses Cloudflare Workers AI as the stable free provider", () => {
+  assert.deepEqual(cloudflareModels({}), [
+    "@cf/google/gemma-4-26b-a4b-it",
+    "@cf/zai-org/glm-4.7-flash"
+  ]);
+  assert.equal(DEFAULT_CLOUDFLARE_MODELS.length, 2);
+});
 
 test("uses the requested five free OpenRouter models in priority order", () => {
   assert.deepEqual(openRouterModels({}), [
