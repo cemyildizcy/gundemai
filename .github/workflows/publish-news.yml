@@ -90,7 +90,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_MODELS: nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-26b-a4b-it:free,z-ai/glm-4.5-air:free
           MAX_AI_ARTICLES_PER_RUN: "1"
-          MAX_AI_ARTICLES_PER_DAY: "20"
+          MAX_AI_ARTICLES_PER_DAY: "50"
           MAX_CANDIDATES_PER_RUN: "25"
           SUPPORT_EMAIL: cmyldz112233@gmail.com
 

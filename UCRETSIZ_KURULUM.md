@@ -27,6 +27,6 @@ Bu kurulumda Firebase Spark planı değiştirilmez ve kredi kartı eklenmez.
 
 ## Ücretsiz Kota Koruması
 
-Görev beş dakikada bir kaynakları kontrol eder. Her turda en fazla bir yeni haber AI'a gider ve bütün görevler için günlük başlangıç sınırı 20 haberdir. Cloudflare Workers AI ana sağlayıcıdır; OpenRouter yalnızca yedektir. Daha fazla haber varsa silinmez, sonraki uygun tura bırakılır. Aynı haber yeniden analiz edilmez.
+Görev beş dakikada bir kaynakları kontrol eder. Her turda en fazla bir yeni haber AI'a gider ve bütün görevler için günlük başlangıç sınırı 50 haberdir. Cloudflare Workers AI ana sağlayıcıdır; OpenRouter yalnızca yedektir. Daha fazla haber varsa silinmez, sonraki uygun tura bırakılır. Aynı haber yeniden analiz edilmez.
 
 GitHub ve Cloudflare kotaları zaman içinde değişebildiği için kullanım ekranlarını ara sıra kontrol et. Firebase Console'da Upgrade düğmesine basma; bu mimari Spark planda çalışmak üzere hazırlanmıştır.

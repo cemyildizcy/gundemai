@@ -66,7 +66,7 @@ export function createNewsRuntime(environment: NodeJS.ProcessEnv = process.env):
   const projectId = environment.GOOGLE_CLOUD_PROJECT || environment.GCLOUD_PROJECT;
   const store = new FirestoreNewsStore(new Firestore(projectId ? { projectId } : {}));
   const maxNewArticles = positiveInteger(environment.MAX_AI_ARTICLES_PER_RUN, 1);
-  const maxNewArticlesPerDay = positiveInteger(environment.MAX_AI_ARTICLES_PER_DAY, 20);
+  const maxNewArticlesPerDay = positiveInteger(environment.MAX_AI_ARTICLES_PER_DAY, 50);
   const maxCandidatesPerRun = positiveInteger(environment.MAX_CANDIDATES_PER_RUN, 25);
   const pipeline = new NewsPipeline({
     collectors,

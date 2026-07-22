@@ -15,7 +15,7 @@ export interface PipelineResult {
 
 const REJECTION_RETRY_DELAY_MS = 6 * 60 * 60 * 1000;
 const QUOTA_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Los_Angeles",
+  timeZone: "UTC",
   year: "numeric",
   month: "2-digit",
   day: "2-digit"

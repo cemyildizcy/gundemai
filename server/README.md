@@ -18,7 +18,7 @@ Yapılandırma:
 - CLOUDFLARE_MODELS: Önce Gemma 4 26B, ardından GLM 4.7 Flash çalışır.
 - OPENROUTER_MODELS: Cloudflare cevap veremezse sırayla denenecek yedek ücretsiz modeller.
 - MAX_AI_ARTICLES_PER_RUN: Bir turda AI'a gönderilecek en fazla yeni haber; ücretsiz kurulumda 1.
-- MAX_AI_ARTICLES_PER_DAY: Firestore üzerinden bütün görevler için uygulanan günlük AI sınırı; başlangıç değeri 20.
+- MAX_AI_ARTICLES_PER_DAY: Firestore üzerinden bütün görevler için uygulanan günlük AI sınırı; Cloudflare ücretsiz kotasına göre başlangıç değeri 50.
 - MAX_CANDIDATES_PER_RUN: Firestore ücretsiz okuma kotasını korumak için her turda kontrol edilen en yeni olay sayısı; başlangıç değeri 25.
 - SUPPORT_EMAIL: Yasal sayfalarda gösterilen iletişim adresi.
 - GNEWS_API_KEY, NEWS_API_KEY: İsteğe bağlıdır; RSS ve Telegram için gerekmez.
