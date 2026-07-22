@@ -82,17 +82,22 @@ export function buildAnalysisPrompt(cluster: ArticleCluster): { system: string; 
     "Use OFFICIAL_CONFIRMED only when an official source is included; MULTI_SOURCE_CONFIRMED only for at least two independent sources; otherwise prefer SINGLE_SOURCE_REPORT.",
     "Required keys: title, summary, category, what_happened, why_important, missing_information, verification_status, confidence_score, possible_impacts, unverified_claims, contradictions, verified_facts."
   ].join("\n");
-  const sourceLines = cluster.sources.map((source, index) =>
-    `${index + 1}. ${source.name} | ${source.url} | ${source.headline ?? ""}`
+  const sourceLines = cluster.sources.slice(0, 8).map((source, index) =>
+    `${index + 1}. ${promptText(source.name, 120)} | ${source.url} | ${promptText(source.headline ?? "", 300)}`
   ).join("\n");
   const user = [
     `Deterministic category hint: ${cluster.categoryHint}`,
-    `Title: ${cluster.title}`,
-    `Description:\n${cluster.description}`,
-    `Content:\n${cluster.content}`,
+    `Title: ${promptText(cluster.title, 300)}`,
+    `Description:\n${promptText(cluster.description, 2_000)}`,
+    `Content:\n${promptText(cluster.content, 6_000)}`,
     `Sources:\n${sourceLines}`
   ].join("\n\n");
   return { system, user };
+}
+
+function promptText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 export class ServerNewsAnalyzer implements NewsAnalyzer {

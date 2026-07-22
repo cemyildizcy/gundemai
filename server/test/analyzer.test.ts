@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ServerNewsAnalyzer, extractJsonObject } from "../src/ai/server-news-analyzer.js";
+import {
+  buildAnalysisPrompt,
+  ServerNewsAnalyzer,
+  extractJsonObject
+} from "../src/ai/server-news-analyzer.js";
 import type { ArticleCluster } from "../src/domain/types.js";
 
 const cluster: ArticleCluster = {
@@ -37,6 +41,17 @@ const validJson = JSON.stringify({
 
 test("extracts one JSON object from fenced model output", () => {
   assert.equal(extractJsonObject(`\`\`\`json\n${validJson}\n\`\`\``), validJson);
+});
+
+test("bounds source text before sending it to an AI provider", () => {
+  const prompt = buildAnalysisPrompt({
+    ...cluster,
+    description: "d".repeat(10_000),
+    content: "c".repeat(20_000)
+  });
+
+  assert.ok(prompt.user.length < 9_000);
+  assert.doesNotMatch(prompt.user, /c{7000}/);
 });
 
 test("uses article content classification instead of a generic model category", async () => {
