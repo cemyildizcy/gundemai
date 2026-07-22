@@ -1,0 +1,6 @@
+{
+  "name": "GündemAI",
+  "description": "Yapay Zekâ Destekli Android Haber Uygulaması",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

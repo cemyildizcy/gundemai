@@ -1,0 +1,50 @@
+{
+  "firestore": {
+    "rules": "server/firestore.rules",
+    "indexes": "server/firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "hosting/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/*.tmp"
+    ],
+    "trailingSlash": false,
+    "headers": [
+      {
+        "source": "/v1/news",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300, stale-while-revalidate=3600"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json; charset=utf-8"
+          }
+        ]
+      },
+      {
+        "source": "/v1/news.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300, stale-while-revalidate=3600"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json; charset=utf-8"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/v1/news",
+        "destination": "/v1/news.json"
+      }
+    ]
+  }
+}

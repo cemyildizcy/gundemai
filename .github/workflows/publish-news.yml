@@ -1,0 +1,61 @@
+name: Publish shared news feed
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+concurrency:
+  group: publish-shared-news
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Authenticate to Firebase
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Build server tools
+        working-directory: server
+        run: npm run build
+
+      - name: Collect, analyze, and prepare the shared feed
+        working-directory: server
+        run: npm run publish:static
+        env:
+          GOOGLE_CLOUD_PROJECT: gundemai
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODELS: nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-26b-a4b-it:free,z-ai/glm-4.5-air:free
+          MAX_AI_ARTICLES_PER_RUN: "1"
+          MAX_AI_ARTICLES_PER_DAY: "20"
+          MAX_CANDIDATES_PER_RUN: "25"
+          SUPPORT_EMAIL: cmyldz112233@gmail.com
+
+      - name: Deploy the feed to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
+          channelId: live
+          projectId: gundemai
