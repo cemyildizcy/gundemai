@@ -64,6 +64,23 @@ test("uses article content classification instead of a generic model category", 
   assert.equal(result.category, "Yapay Zeka");
 });
 
+test("normalizes common structured-output variations without weakening quality checks", async () => {
+  const response = JSON.stringify({
+    ...JSON.parse(validJson),
+    confidence_score: 0.84,
+    possible_impacts: "Kodlama araclarinda yeni model entegrasyonlari yapilabilir.",
+    unverified_claims: null,
+    contradictions: []
+  });
+  const analyzer = new ServerNewsAnalyzer([{ name: "test", generate: async () => response }]);
+
+  const result = await analyzer.analyze(cluster);
+
+  assert.equal(result.confidenceScore, 84);
+  assert.deepEqual(result.possibleImpacts, ["Kodlama araclarinda yeni model entegrasyonlari yapilabilir."]);
+  assert.deepEqual(result.unverifiedClaims, []);
+});
+
 test("uses the collector category hint when text has no category signal", async () => {
   const neutralCluster: ArticleCluster = {
     ...cluster,

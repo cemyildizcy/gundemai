@@ -32,10 +32,28 @@ function requiredString(value: unknown, field: string): string {
 }
 
 function stringArray(value: unknown, field: string): string[] {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+  if (value === null || value === undefined) return [];
+  const values = Array.isArray(value) ? value : [value];
+  const strings = values.flatMap((item) => {
+    if (typeof item === "string") return [item];
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    return Object.values(item as Record<string, unknown>)
+      .filter((nested): nested is string => typeof nested === "string");
+  });
+  if (strings.length === 0 && values.length > 0) {
     throw new Error(`Invalid string array field: ${field}`);
   }
-  return [...new Set(value.map((item) => item.trim()).filter(Boolean))];
+  return [...new Set(strings.map((item) => item.trim()).filter(Boolean))];
+}
+
+function confidenceScore(value: unknown): number {
+  const parsed = typeof value === "string"
+    ? Number(value.trim().replace(/%$/, ""))
+    : value;
+  if (typeof parsed !== "number" || !Number.isFinite(parsed)) {
+    throw new Error("Invalid confidence_score");
+  }
+  return Math.round(parsed > 0 && parsed <= 1 ? parsed * 100 : parsed);
 }
 
 function parseAnalysis(raw: string): AiAnalysis {
@@ -44,13 +62,9 @@ function parseAnalysis(raw: string): AiAnalysis {
   const data = value as Record<string, unknown>;
   const category = requiredString(data.category, "category");
   const verificationStatus = requiredString(data.verification_status, "verification_status") as VerificationStatus;
-  const confidenceScore = data.confidence_score;
 
   if (!isCategoryName(category)) throw new Error(`Unsupported category: ${category}`);
   if (!VERIFICATION_STATUSES.has(verificationStatus)) throw new Error(`Unsupported verification status: ${verificationStatus}`);
-  if (typeof confidenceScore !== "number" || !Number.isFinite(confidenceScore)) {
-    throw new Error("Invalid confidence_score");
-  }
 
   return {
     title: requiredString(data.title, "title"),
@@ -60,7 +74,7 @@ function parseAnalysis(raw: string): AiAnalysis {
     whyImportant: requiredString(data.why_important, "why_important"),
     missingInformation: requiredString(data.missing_information, "missing_information"),
     verificationStatus,
-    confidenceScore: Math.round(confidenceScore),
+    confidenceScore: confidenceScore(data.confidence_score),
     possibleImpacts: stringArray(data.possible_impacts, "possible_impacts"),
     unverifiedClaims: stringArray(data.unverified_claims, "unverified_claims"),
     contradictions: stringArray(data.contradictions, "contradictions"),
@@ -80,6 +94,8 @@ export function buildAnalysisPrompt(cluster: ArticleCluster): { system: string; 
     "If a detail is unknown, place it in missing_information instead of guessing.",
     "Select one category from: Son Dakika, Yapay Zeka, Teknoloji, Turkiye, Dunya, Ekonomi, Finans, Kripto, Spor, Transfer, Bilim, Oyun, Girisimcilik, Kultur ve Sanat, Saglik.",
     "Use OFFICIAL_CONFIRMED only when an official source is included; MULTI_SOURCE_CONFIRMED only for at least two independent sources; otherwise prefer SINGLE_SOURCE_REPORT.",
+    "confidence_score must be an integer from 50 to 100.",
+    "possible_impacts, unverified_claims, contradictions, and verified_facts must always be JSON arrays of strings. Use [] when there are no items.",
     "Required keys: title, summary, category, what_happened, why_important, missing_information, verification_status, confidence_score, possible_impacts, unverified_claims, contradictions, verified_facts."
   ].join("\n");
   const sourceLines = cluster.sources.slice(0, 8).map((source, index) =>
