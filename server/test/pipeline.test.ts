@@ -66,6 +66,7 @@ test("stores a failed analysis outside the ready feed", async () => {
 
   assert.equal(result.published, 0);
   assert.equal(result.rejected, 1);
+  assert.match(result.rejectionReasons[0], /generic filler text/i);
   assert.equal((await store.listReady()).length, 0);
   assert.equal(store.rejections.length, 1);
 });
@@ -106,6 +107,24 @@ test("does not repeatedly spend AI quota on a recently rejected cluster", async 
 
   assert.equal(analysisCalls, 1);
   assert.equal(second.skipped, 1);
+});
+
+test("redacts an OpenRouter key from rejection diagnostics", async () => {
+  const store = new InMemoryNewsStore();
+  const pipeline = new NewsPipeline({
+    collectors: [{ collect: async () => [raw] }],
+    analyzer: {
+      analyze: async () => {
+        throw new Error("provider failed with sk-or-v1-this-must-not-leak");
+      }
+    },
+    store
+  });
+
+  const result = await pipeline.run();
+
+  assert.doesNotMatch(result.rejectionReasons[0], /this-must-not-leak/);
+  assert.match(result.rejectionReasons[0], /redacted-openrouter-key/);
 });
 
 test("defers new clusters after the configured AI budget is reached", async () => {

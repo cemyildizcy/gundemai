@@ -9,6 +9,7 @@ export interface PipelineResult {
   skipped: number;
   deferred: number;
   rejected: number;
+  rejectionReasons: string[];
   collectorErrors: number;
 }
 
@@ -56,7 +57,8 @@ export class NewsPipeline {
       published: 0,
       skipped: 0,
       deferred: allClusters.length - clusters.length,
-      rejected: 0
+      rejected: 0,
+      rejectionReasons: [] as string[]
     };
     let analysisAttempts = 0;
     let dailyQuotaExhausted = false;
@@ -91,10 +93,12 @@ export class NewsPipeline {
         await this.store.saveReady(article);
         counters.published += 1;
       } catch (error) {
+        const reason = sanitizeRejectionReason(error);
         counters.rejected += 1;
+        counters.rejectionReasons.push(reason);
         await this.store.saveRejection({
           cluster,
-          reason: error instanceof Error ? error.message : String(error),
+          reason,
           rejectedAt: now,
           analysisVersion: ANALYSIS_VERSION
         });
@@ -108,4 +112,12 @@ export class NewsPipeline {
       collectorErrors: collections.filter((result) => result.status === "rejected").length
     };
   }
+}
+
+function sanitizeRejectionReason(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message
+    .replace(/sk-or-v1-[A-Za-z0-9_-]+/g, "[redacted-openrouter-key]")
+    .replace(/[\r\n\t]+/g, " ")
+    .slice(0, 4_000);
 }
