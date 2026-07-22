@@ -17,10 +17,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Check repository secrets
+        id: setup
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_GUNDEMAI: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          if [[ -n "$FIREBASE_SERVICE_ACCOUNT_GUNDEMAI" && -n "$OPENROUTER_API_KEY" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Waiting for FIREBASE_SERVICE_ACCOUNT_GUNDEMAI and OPENROUTER_API_KEY repository secrets."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check out project
+        if: steps.setup.outputs.ready == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node.js
+        if: steps.setup.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -28,19 +44,23 @@ jobs:
           cache-dependency-path: server/package-lock.json
 
       - name: Authenticate to Firebase
+        if: steps.setup.outputs.ready == 'true'
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
 
       - name: Install server dependencies
+        if: steps.setup.outputs.ready == 'true'
         working-directory: server
         run: npm ci
 
       - name: Build server tools
+        if: steps.setup.outputs.ready == 'true'
         working-directory: server
         run: npm run build
 
       - name: Collect, analyze, and prepare the shared feed
+        if: steps.setup.outputs.ready == 'true'
         working-directory: server
         run: npm run publish:static
         env:
@@ -53,6 +73,7 @@ jobs:
           SUPPORT_EMAIL: cmyldz112233@gmail.com
 
       - name: Deploy the feed to Firebase Hosting
+        if: steps.setup.outputs.ready == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
