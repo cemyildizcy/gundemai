@@ -32,8 +32,7 @@ export class CloudflareWorkersAiProvider implements AiTextProvider {
   }
 
   async generate(input: { system: string; user: string }): Promise<string> {
-    const modelPath = this.model.split("/").map(encodeURIComponent).join("/");
-    const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(this.accountId)}/ai/run/${modelPath}`;
+    const url = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(this.accountId)}/ai/v1/chat/completions`;
     const body = await fetchJson(url, {
       method: "POST",
       headers: {
@@ -41,24 +40,69 @@ export class CloudflareWorkersAiProvider implements AiTextProvider {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
+        model: this.model,
         messages: [
           { role: "system", content: input.system },
           { role: "user", content: input.user }
         ],
         temperature: 0.1,
-        max_completion_tokens: 1600,
-        response_format: { type: "json_object" }
+        max_tokens: 900,
+        chat_template_kwargs: { enable_thinking: false }
       })
-    }, this.timeoutMs, this.request) as {
-      result?: {
-        response?: string;
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-    };
-    const content = body.result?.choices?.[0]?.message?.content ?? body.result?.response;
-    if (!content) throw new Error("Cloudflare Workers AI returned no content");
-    return content;
+    }, this.timeoutMs, this.request);
+    const content = cloudflareContent(body);
+    if (content) return content;
+
+    const record = asRecord(body);
+    const result = asRecord(record?.result);
+    const topLevelKeys = record ? Object.keys(record).join(",") : "none";
+    const resultKeys = result ? Object.keys(result).join(",") : "none";
+    throw new Error(
+      `Cloudflare Workers AI returned no usable content (top-level: ${topLevelKeys}; result: ${resultKeys})`
+    );
   }
+}
+
+function cloudflareContent(body: unknown): string | undefined {
+  const root = asRecord(body);
+  const result = asRecord(root?.result) ?? root;
+  if (!result) return undefined;
+
+  const choices = Array.isArray(result.choices) ? result.choices : [];
+  const firstChoice = asRecord(choices[0]);
+  const message = asRecord(firstChoice?.message);
+  return normalizeContent(
+    message?.content
+      ?? firstChoice?.text
+      ?? result.response
+      ?? message?.reasoning_content
+      ?? message?.reasoning
+  );
+}
+
+function normalizeContent(value: unknown): string | undefined {
+  if (typeof value === "string") return value.trim() || undefined;
+  if (Array.isArray(value)) {
+    const text = value
+      .map((part) => {
+        if (typeof part === "string") return part;
+        const record = asRecord(part);
+        const content = record?.text ?? record?.content;
+        return typeof content === "string" ? content : "";
+      })
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+    return text || undefined;
+  }
+  if (value && typeof value === "object") return JSON.stringify(value);
+  return undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
 }
 
 export class OpenRouterProvider implements AiTextProvider {
