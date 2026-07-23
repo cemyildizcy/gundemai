@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "gundemai-edge",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-22",
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gundemai-news",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "workflows": [
+    {
+      "name": "gundemai-news-pipeline",
+      "binding": "NEWS_WORKFLOW",
+      "class_name": "NewsWorkflow",
+      "schedules": ["*/3 * * * *"]
+    }
+  ],
+  "vars": {
+    "FIREBASE_PROJECT_ID": "gundemai",
+    "LEGACY_FEED_URL": "https://gundemai.web.app/v1/news.json",
+    "ANALYSES_PER_RUN": "2"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

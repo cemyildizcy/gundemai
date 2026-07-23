@@ -1,25 +1,44 @@
 # GündemAI
 
-GündemAI, haberleri merkezi olarak toplayan ve yapay zeka analizinden geçirdikten sonra bütün kullanıcılara aynı sırada sunan Android haber uygulamasıdır. Telefon üzerinde AI anahtarı veya haber API anahtarı bulunmaz.
+GündemAI; haberleri merkezi olarak toplayan, ortak bir yapay zekâ analizinden
+geçiren ve bütün kullanıcılara aynı sırada sunan Android haber uygulamasıdır.
+Telefonda AI veya haber servisi anahtarı bulunmaz.
 
 ## Yapı
 
-- app/: Kotlin, Jetpack Compose, Room, WorkManager ve Firebase Authentication.
-- server/: Haber toplama, kümeleme, kategori belirleme, AI analizi ve kalite denetimi.
-- hosting/: Mobil uygulamanın okuduğu ortak haber JSON'u ile gizlilik ve hesap silme sayfaları.
-- .github/workflows/publish-news.yml: Beş dakikada bir çalışan ücretsiz yayın görevi.
+- `app/`: Kotlin, Jetpack Compose, Room, WorkManager, Firebase Auth ve FCM.
+- `edge/`: Cloudflare Workflow, D1 kalıcı haber kuyruğu, Workers AI ve yayın API'si.
+- `server/`: Eski Firebase tabanlı yayın hattı ve sunucu testleri; geçiş yedeği.
+- `hosting/`: Gizlilik, hesap silme sayfaları ve geçiş sırasındaki eski ortak akış.
+- `.github/workflows/deploy-edge.yml`: Kalıcı sunucuyu otomatik kurar ve günceller.
 
-Akış: kaynakları topla -> aynı olayı kümele -> kategoriyi belirle -> AI analizi üret -> kalite denetiminden geçir -> Firestore'a kaydet -> Firebase Hosting'e ortak akış olarak yayınla.
+Kalıcı akış:
 
-## Ücretsiz Kurulum
+`3 dakikada bir tara -> D1 kuyruğuna yaz -> olayı/kategoriyi belirle -> AI ile analiz et -> kalite kontrolü -> yayınla -> kategori bildirimi gönder`
 
-Firebase projesi Spark planda kalabilir. Cloud Run, Cloud Functions veya ücretli zamanlayıcı kullanılmaz. Otomatik görev public GitHub deposunda beş dakikada bir çalışır; analizde ücretsiz Cloudflare Workers AI'ı, gerektiğinde OpenRouter yedeğini kullanır ve sonucu https://gundemai.web.app/v1/news adresinde yayınlar.
+Haber, AI çağrısından önce D1'e yazılır. AI veya kaynak geçici olarak hata
+verirse haber kaybolmaz; yeniden deneme kuyruğunda kalır. Mobil uygulama yalnız
+`READY` durumundaki ortak analizleri gösterir.
 
-Adım adım kullanıcı rehberi için UCRETSIZ_KURULUM.md dosyasını açın.
+## Ücretsiz çalışma düzeni
 
-## Android Geliştirme
+Her üç dakikalık çalışma beş toplama ve bir analiz adımından oluşur. Böylece
+günde `480 x 6 = 2.880` Workflow adımı kullanılır ve Cloudflare Free plandaki
+3.000 adımlık günlük sınırın altında kalır.
 
-Firebase Android yapılandırmasını Firebase Console'dan indirip `app/google-services.json` olarak ekleyin. Bu dosya ve yerel `.env` değerleri güvenlik amacıyla GitHub'a yüklenmez.
+Workers AI ücretsiz günlük kotası sınırsız değildir. Sistem bu nedenle tur
+başına en fazla iki haber analiz eder ve kota dolduğunda ham haberleri silmez.
+Kota yenilendiğinde kuyruk otomatik devam eder. Ücretsiz bir üçüncü taraf
+serviste sınırsız AI garantisi verilemez; bu mimari ücretsiz sınır dolduğunda
+veri kaybetmemeyi garanti eder.
+
+Kurulum ve izinler için [UCRETSIZ_KURULUM.md](UCRETSIZ_KURULUM.md), sunucunun
+teknik ayrıntıları için [edge/README.md](edge/README.md) dosyasına bakın.
+
+## Android geliştirme
+
+Firebase Android yapılandırmasını `app/google-services.json` olarak ekleyin.
+Bu dosya ve yerel `.env` güvenlik nedeniyle GitHub'a yüklenmez.
 
 ```powershell
 .\gradlew.bat testDebugUnitTest lintDebug assembleDebug
@@ -27,6 +46,11 @@ Firebase Android yapılandırmasını Firebase Console'dan indirip `app/google-s
 
 ## Release
 
-Google Play AAB dosyası için bir upload keystore oluşturulmalı ve KEYSTORE_PATH, STORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD değerleri tanımlanmalıdır. Reklam gösterilecekse ayrıca gerçek AdMob uygulama ve banner kimlikleri gerekir; test reklam kimlikleriyle mağaza yayını yapılmamalıdır.
+Google Play AAB dosyası için upload keystore ile `KEYSTORE_PATH`,
+`STORE_PASSWORD`, `KEY_ALIAS` ve `KEY_PASSWORD` tanımlanmalıdır. Reklam
+gösterilecekse Google test kimlikleri yerine onaylı AdMob uygulama ve banner
+kimlikleri kullanılmalıdır.
 
-Gizlilik politikası https://gundemai.web.app/privacy, hesap silme sayfası https://gundemai.web.app/account-deletion adresindedir.
+Gizlilik politikası: https://gundemai.web.app/privacy
+
+Hesap silme: https://gundemai.web.app/account-deletion

@@ -1,0 +1,107 @@
+name: Deploy permanent news pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "edge/**"
+      - ".github/workflows/deploy-edge.yml"
+
+concurrency:
+  group: deploy-gundemai-edge
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: edge
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
+        run: |
+          if [[ -z "$CLOUDFLARE_ACCOUNT_ID" || -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are required."
+            exit 1
+          fi
+          if [[ -z "$FIREBASE_SERVICE_ACCOUNT" ]]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_GUNDEMAI is required for notifications."
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: edge/package-lock.json
+
+      - name: Install and verify
+        run: |
+          npm ci
+          npm run check
+          npm test
+
+      - name: Find or create D1 database
+        id: database
+        shell: bash
+        run: |
+          database_id="$(npx wrangler d1 list --json | jq -r '.[] | select(.name == "gundemai-news") | .uuid' | head -n 1)"
+          if [[ -z "$database_id" ]]; then
+            create_output="$(npx wrangler d1 create gundemai-news --location eeur 2>&1)"
+            printf '%s\n' "$create_output"
+            database_id="$(printf '%s\n' "$create_output" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)"
+          fi
+          if [[ -z "$database_id" ]]; then
+            echo "::error::D1 database ID could not be determined."
+            exit 1
+          fi
+          node -e "const fs=require('fs');const p='wrangler.jsonc';const id=process.argv[1];fs.writeFileSync(p,fs.readFileSync(p,'utf8').replace('00000000-0000-0000-0000-000000000000',id));" "$database_id"
+          echo "database_id=$database_id" >> "$GITHUB_OUTPUT"
+
+      - name: Apply database migrations
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: Deploy Worker and three-minute Workflow
+        run: npx wrangler deploy
+
+      - name: Configure notification and admin secrets
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
+          ADMIN_TOKEN: ${{ secrets.GUNDEMAI_ADMIN_TOKEN }}
+        run: |
+          node -e "const fs=require('fs');const value={FIREBASE_SERVICE_ACCOUNT:process.env.FIREBASE_SERVICE_ACCOUNT};if(process.env.ADMIN_TOKEN)value.ADMIN_TOKEN=process.env.ADMIN_TOKEN;fs.writeFileSync('.runtime-secrets.json',JSON.stringify(value));"
+          npx wrangler secret bulk .runtime-secrets.json
+          rm -f .runtime-secrets.json
+
+      - name: Start the first pipeline run
+        run: npx wrangler workflows trigger gundemai-news-pipeline '{"reason":"manual"}'
+
+      - name: Show service URL
+        shell: bash
+        run: |
+          subdomain="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
+            | jq -r '.result.subdomain')"
+          service_url="https://gundemai-edge.${subdomain}.workers.dev"
+          echo "### GundemAI Edge deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "$service_url/v1/news" >> "$GITHUB_STEP_SUMMARY"
+          echo "$service_url/health.json" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=GundemAI Edge URL::$service_url"

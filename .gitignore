@@ -27,4 +27,7 @@ server/.env
 server/node_modules/
 server/dist/
 server/notification-outbox.json
+edge/node_modules/
+edge/.wrangler/
+edge/dist/
 app/build/
