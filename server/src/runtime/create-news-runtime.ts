@@ -16,10 +16,8 @@ import { FirestoreNewsStore } from "../storage/firestore-news-store.js";
 
 export const DEFAULT_OPENROUTER_MODELS = [
   "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "google/gemma-4-31b-it:free",
+  "openrouter/free",
   "nvidia/nemotron-3-super-120b-a12b:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "z-ai/glm-4.5-air:free"
 ] as const;
 
 export const DEFAULT_CLOUDFLARE_MODELS = [
@@ -66,6 +64,10 @@ export function createNewsRuntime(environment: NodeJS.ProcessEnv = process.env):
   const projectId = environment.GOOGLE_CLOUD_PROJECT || environment.GCLOUD_PROJECT;
   const store = new FirestoreNewsStore(new Firestore(projectId ? { projectId } : {}));
   const maxNewArticles = positiveInteger(environment.MAX_AI_ARTICLES_PER_RUN, 1);
+  const maxAnalysisAttempts = positiveInteger(
+    environment.MAX_AI_ATTEMPTS_PER_RUN,
+    Math.max(maxNewArticles, maxNewArticles * 3)
+  );
   const maxNewArticlesPerDay = positiveInteger(environment.MAX_AI_ARTICLES_PER_DAY, 50);
   const maxCandidatesPerRun = positiveInteger(environment.MAX_CANDIDATES_PER_RUN, 25);
   const pipeline = new NewsPipeline({
@@ -73,6 +75,7 @@ export function createNewsRuntime(environment: NodeJS.ProcessEnv = process.env):
     analyzer: new ServerNewsAnalyzer(providers),
     store,
     maxNewArticles,
+    maxAnalysisAttempts,
     maxNewArticlesPerDay,
     maxCandidatesPerRun
   });

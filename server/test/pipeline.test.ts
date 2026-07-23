@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NewsPipeline } from "../src/pipeline/news-pipeline.js";
+import { NewsPipeline, prioritizeClusters } from "../src/pipeline/news-pipeline.js";
 import { InMemoryNewsStore } from "../src/storage/in-memory-news-store.js";
 import type { AiAnalysis } from "../src/domain/types.js";
 import type { RawArticle } from "../src/domain/raw-article.js";
@@ -151,6 +151,57 @@ test("defers new clusters after the configured AI budget is reached", async () =
   assert.equal(result.deferred, 1);
 });
 
+test("continues with the next candidate after a rejected analysis", async () => {
+  const store = new InMemoryNewsStore();
+  const secondRaw = {
+    ...raw,
+    id: "raw-success",
+    title: "TCMB yeni para politikasi raporunu kamuoyuna sundu",
+    url: "https://example.com/tcmb-success",
+    publishedAt: raw.publishedAt - 1
+  };
+  let analysisCalls = 0;
+  const pipeline = new NewsPipeline({
+    collectors: [{ collect: async () => [raw, secondRaw] }],
+    analyzer: {
+      analyze: async () => {
+        analysisCalls += 1;
+        if (analysisCalls === 1) throw new Error("first candidate rejected");
+        return valid;
+      }
+    },
+    store,
+    maxNewArticles: 1,
+    maxAnalysisAttempts: 2
+  });
+
+  const result = await pipeline.run();
+
+  assert.equal(analysisCalls, 2);
+  assert.equal(result.rejected, 1);
+  assert.equal(result.published, 1);
+});
+
+test("interleaves regular sources and Telegram while rotating categories", () => {
+  const clusters = [
+    cluster("rss-finance-1", "Finans", "RSS Finance", 400),
+    cluster("rss-finance-2", "Finans", "RSS Finance", 300),
+    cluster("rss-tech", "Teknoloji", "RSS Tech", 200),
+    cluster("telegram-breaking", "Son Dakika", "BPT (Telegram)", 500),
+    cluster("telegram-sport", "Spor", "BPT (Telegram)", 100)
+  ];
+
+  const result = prioritizeClusters(clusters);
+
+  assert.deepEqual(result.map((item) => item.id), [
+    "rss-finance-1",
+    "telegram-breaking",
+    "rss-tech",
+    "telegram-sport",
+    "rss-finance-2"
+  ]);
+});
+
 test("enforces the shared daily AI budget across pipeline runs", async () => {
   const store = new InMemoryNewsStore();
   const secondRaw = {
@@ -180,3 +231,21 @@ test("enforces the shared daily AI budget across pipeline runs", async () => {
   assert.equal(third.published, 1);
   assert.equal(analysisCalls, 2);
 });
+
+function cluster(id: string, categoryHint: string, sourceName: string, publishedAt: number) {
+  return {
+    id,
+    title: `${id} guncel haber basligi`,
+    description: `${id} guncel haber aciklamasi`,
+    content: `${id} guncel haber icerigi`,
+    categoryHint,
+    publishedAt,
+    imageUrl: null,
+    sources: [{
+      name: sourceName,
+      url: `https://example.com/${id}`,
+      publishedAt,
+      headline: `${id} guncel haber basligi`
+    }]
+  };
+}

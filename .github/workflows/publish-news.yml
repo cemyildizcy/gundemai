@@ -3,7 +3,7 @@ name: Publish shared news feed
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "2-59/5 * * * *"
 
 concurrency:
   group: publish-shared-news
@@ -88,10 +88,11 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_MODELS: '@cf/google/gemma-4-26b-a4b-it,@cf/zai-org/glm-4.7-flash'
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODELS: nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-26b-a4b-it:free,z-ai/glm-4.5-air:free
-          MAX_AI_ARTICLES_PER_RUN: "1"
+          OPENROUTER_MODELS: nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free,nvidia/nemotron-3-super-120b-a12b:free
+          MAX_AI_ARTICLES_PER_RUN: "5"
+          MAX_AI_ATTEMPTS_PER_RUN: "8"
           MAX_AI_ARTICLES_PER_DAY: "50"
-          MAX_CANDIDATES_PER_RUN: "25"
+          MAX_CANDIDATES_PER_RUN: "100"
           SUPPORT_EMAIL: cmyldz112233@gmail.com
 
       - name: Deploy the feed to Firebase Hosting

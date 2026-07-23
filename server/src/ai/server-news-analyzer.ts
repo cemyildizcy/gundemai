@@ -1,4 +1,4 @@
-import { validateAnalysis } from "../domain/analysis-quality.js";
+import { sourceGroundedFacts, validateAnalysis } from "../domain/analysis-quality.js";
 import { categorizeArticle, isCategoryName } from "../domain/categories.js";
 import type { AiAnalysis, ArticleCluster, VerificationStatus } from "../domain/types.js";
 import type { NewsAnalyzer } from "../pipeline/contracts.js";
@@ -154,7 +154,12 @@ export class ServerNewsAnalyzer implements NewsAnalyzer {
     for (const provider of this.providers) {
       try {
         const parsed = parseAnalysis(await provider.generate(prompt));
-        const analysis = { ...parsed, category: deterministicCategory };
+        const groundedFacts = sourceGroundedFacts(cluster, parsed.verifiedFacts);
+        const analysis = {
+          ...parsed,
+          category: deterministicCategory,
+          verifiedFacts: groundedFacts.length > 0 ? groundedFacts : [cluster.title]
+        };
         const quality = validateAnalysis(cluster, analysis);
         if (!quality.ok) throw new Error(quality.reasons.join("; "));
         return analysis;

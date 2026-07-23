@@ -136,6 +136,35 @@ test("falls back to the next provider when the first response is generic", async
   assert.match(result.whyImportant, /API erisimi/);
 });
 
+test("keeps only source-grounded verified facts instead of discarding the article", async () => {
+  const response = JSON.stringify({
+    ...JSON.parse(validJson),
+    verified_facts: [
+      "OpenAI yeni modeli API uzerinden gelistiricilere sundu.",
+      "Model 2035 yilinda tum urunlerin yerini alacak."
+    ]
+  });
+  const analyzer = new ServerNewsAnalyzer([{ name: "test", generate: async () => response }]);
+
+  const result = await analyzer.analyze(cluster);
+
+  assert.deepEqual(result.verifiedFacts, [
+    "OpenAI yeni modeli API uzerinden gelistiricilere sundu."
+  ]);
+});
+
+test("uses the source headline when every model fact is ungrounded", async () => {
+  const response = JSON.stringify({
+    ...JSON.parse(validJson),
+    verified_facts: ["Model 2035 yilinda tum urunlerin yerini alacak."]
+  });
+  const analyzer = new ServerNewsAnalyzer([{ name: "test", generate: async () => response }]);
+
+  const result = await analyzer.analyze(cluster);
+
+  assert.deepEqual(result.verifiedFacts, [cluster.title]);
+});
+
 test("fails closed when every provider returns an invalid analysis", async () => {
   const analyzer = new ServerNewsAnalyzer([
     { name: "invalid", generate: async () => "not-json" }

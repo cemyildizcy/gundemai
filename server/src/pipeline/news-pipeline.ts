@@ -1,6 +1,6 @@
 import { clusterRawArticles } from "../domain/clustering.js";
 import { ANALYSIS_VERSION, createReadyArticle } from "../domain/publication.js";
-import type { ReadyArticle } from "../domain/types.js";
+import type { ArticleCluster, ReadyArticle } from "../domain/types.js";
 import type { NewsAnalyzer, NewsCollector, NewsStore } from "./contracts.js";
 
 export interface PipelineResult {
@@ -29,6 +29,7 @@ export class NewsPipeline {
   private readonly store: NewsStore;
   private readonly now: () => number;
   private readonly maxNewArticles: number;
+  private readonly maxAnalysisAttempts: number;
   private readonly maxNewArticlesPerDay: number;
   private readonly maxCandidatesPerRun: number;
 
@@ -38,6 +39,7 @@ export class NewsPipeline {
     store: NewsStore;
     now?: () => number;
     maxNewArticles?: number;
+    maxAnalysisAttempts?: number;
     maxNewArticlesPerDay?: number;
     maxCandidatesPerRun?: number;
   }) {
@@ -46,6 +48,11 @@ export class NewsPipeline {
     this.store = options.store;
     this.now = options.now ?? Date.now;
     this.maxNewArticles = options.maxNewArticles ?? Number.POSITIVE_INFINITY;
+    this.maxAnalysisAttempts = options.maxAnalysisAttempts ?? (
+      Number.isFinite(this.maxNewArticles)
+        ? Math.max(this.maxNewArticles, this.maxNewArticles * 3)
+        : Number.POSITIVE_INFINITY
+    );
     this.maxNewArticlesPerDay = options.maxNewArticlesPerDay ?? Number.POSITIVE_INFINITY;
     this.maxCandidatesPerRun = options.maxCandidatesPerRun ?? Number.POSITIVE_INFINITY;
   }
@@ -53,7 +60,7 @@ export class NewsPipeline {
   async run(): Promise<PipelineResult> {
     const collections = await Promise.allSettled(this.collectors.map((collector) => collector.collect()));
     const rawArticles = collections.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-    const allClusters = clusterRawArticles(rawArticles);
+    const allClusters = prioritizeClusters(clusterRawArticles(rawArticles));
     const clusters = allClusters.slice(0, this.maxCandidatesPerRun);
     const counters = {
       published: 0,
@@ -74,7 +81,9 @@ export class NewsPipeline {
         continue;
       }
 
-      if (analysisAttempts >= this.maxNewArticles || dailyQuotaExhausted) {
+      if (counters.published >= this.maxNewArticles ||
+          analysisAttempts >= this.maxAnalysisAttempts ||
+          dailyQuotaExhausted) {
         counters.deferred += 1;
         continue;
       }
@@ -117,6 +126,45 @@ export class NewsPipeline {
       publishedArticles
     };
   }
+}
+
+export function prioritizeClusters(clusters: ArticleCluster[]): ArticleCluster[] {
+  const regular = roundRobinByCategory(
+    clusters.filter((cluster) => !cluster.sources.every((source) => source.name.includes("(Telegram)")))
+  );
+  const telegramOnly = roundRobinByCategory(
+    clusters.filter((cluster) => cluster.sources.every((source) => source.name.includes("(Telegram)")))
+  );
+  const result: ArticleCluster[] = [];
+  const length = Math.max(regular.length, telegramOnly.length);
+  for (let index = 0; index < length; index += 1) {
+    const regularCluster = regular[index];
+    const telegramCluster = telegramOnly[index];
+    if (regularCluster) result.push(regularCluster);
+    if (telegramCluster) result.push(telegramCluster);
+  }
+  return result;
+}
+
+function roundRobinByCategory(clusters: ArticleCluster[]): ArticleCluster[] {
+  const buckets = new Map<string, ArticleCluster[]>();
+  for (const cluster of clusters) {
+    const bucket = buckets.get(cluster.categoryHint) ?? [];
+    bucket.push(cluster);
+    buckets.set(cluster.categoryHint, bucket);
+  }
+
+  const result: ArticleCluster[] = [];
+  let remaining = clusters.length;
+  for (let index = 0; remaining > 0; index += 1) {
+    for (const bucket of buckets.values()) {
+      const cluster = bucket[index];
+      if (!cluster) continue;
+      result.push(cluster);
+      remaining -= 1;
+    }
+  }
+  return result;
 }
 
 function sanitizeRejectionReason(error: unknown): string {

@@ -53,6 +53,20 @@ function isGrounded(fact: string, sourceText: string): boolean {
   return overlap / factTokens.size >= 0.4;
 }
 
+function sourceTextFor(cluster: ArticleCluster): string {
+  return [
+    cluster.title,
+    cluster.description,
+    cluster.content,
+    ...cluster.sources.map((source) => source.headline ?? "")
+  ].join(" ");
+}
+
+export function sourceGroundedFacts(cluster: ArticleCluster, facts: string[]): string[] {
+  const sourceText = sourceTextFor(cluster);
+  return facts.filter((fact) => isGrounded(fact, sourceText));
+}
+
 export function validateAnalysis(cluster: ArticleCluster, analysis: AiAnalysis): QualityResult {
   const reasons: string[] = [];
   const combinedAnalysis = fold([
@@ -91,12 +105,7 @@ export function validateAnalysis(cluster: ArticleCluster, analysis: AiAnalysis):
     reasons.push("unverified claim status requires a concrete claim");
   }
 
-  const sourceText = [
-    cluster.title,
-    cluster.description,
-    cluster.content,
-    ...cluster.sources.map((source) => source.headline ?? "")
-  ].join(" ");
+  const sourceText = sourceTextFor(cluster);
   if (analysis.verifiedFacts.some((fact) => !isGrounded(fact, sourceText))) {
     reasons.push("one or more verified facts are not grounded in source text");
   }

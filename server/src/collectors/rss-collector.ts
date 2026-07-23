@@ -77,7 +77,11 @@ export class RssCollector implements NewsCollector {
   async collect(): Promise<RawArticle[]> {
     const results = await Promise.allSettled(this.sources.map(async (source) =>
       parseRssFeed(await fetchText(source.url), source)
+        .sort((left, right) => right.publishedAt - left.publishedAt)
+        .slice(0, MAX_ARTICLES_PER_SOURCE)
     ));
     return results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
   }
 }
+
+const MAX_ARTICLES_PER_SOURCE = 60;
