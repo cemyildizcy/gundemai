@@ -20,6 +20,9 @@ interface NewsDao {
     @Query("SELECT id FROM news_articles")
     suspend fun getAllArticleIdsSync(): List<String>
 
+    @Query("SELECT id FROM news_articles WHERE isBookmarked = 1")
+    suspend fun getBookmarkedArticleIdsSync(): List<String>
+
     @Query("SELECT * FROM news_articles WHERE isBookmarked = 1 ORDER BY publishedAt DESC, id ASC")
     fun getBookmarkedArticles(): Flow<List<NewsArticle>>
 
@@ -34,6 +37,23 @@ interface NewsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertArticles(articles: List<NewsArticle>)
+
+    @Query("""
+        DELETE FROM news_articles
+        WHERE isBookmarked = 0
+          AND id NOT IN (
+            SELECT id FROM news_articles
+            ORDER BY publishedAt DESC, id ASC
+            LIMIT :keepLimit
+          )
+    """)
+    suspend fun pruneOldUnbookmarkedArticles(keepLimit: Int)
+
+    @Transaction
+    suspend fun replaceReadyFeed(articles: List<NewsArticle>, keepLimit: Int) {
+        insertArticles(articles)
+        pruneOldUnbookmarkedArticles(keepLimit)
+    }
 
     @Query("DELETE FROM news_articles WHERE isBookmarked = 0")
     suspend fun deleteUnbookmarkedArticles()

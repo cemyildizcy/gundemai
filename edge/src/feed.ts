@@ -1,3 +1,4 @@
+import { AI_MODEL } from "./analyzer";
 import type { Env, ReadyRow, SourceRow } from "./types";
 
 interface LegacyArticle {
@@ -78,6 +79,13 @@ function toArticle(row: ReadyRow, sources: SourceRow[]): LegacyArticle {
     publishedAt: row.published_at,
     headline: row.title
   };
+  const verificationStatus = articleSources.length >= 2 &&
+    row.verification_status === "SINGLE_SOURCE_REPORT"
+    ? "MULTI_SOURCE_CONFIRMED"
+    : row.verification_status;
+  const confidenceScore = verificationStatus === "MULTI_SOURCE_CONFIRMED"
+    ? Math.max(82, row.confidence_score)
+    : row.confidence_score;
   return {
     id: row.id,
     status: "READY",
@@ -94,8 +102,8 @@ function toArticle(row: ReadyRow, sources: SourceRow[]): LegacyArticle {
     whatHappened: row.what_happened,
     whyImportant: row.why_important,
     missingInformation: row.missing_information,
-    verificationStatus: row.verification_status,
-    confidenceScore: row.confidence_score,
+    verificationStatus,
+    confidenceScore,
     possibleImpacts: parseArray(row.possible_impacts),
     unverifiedClaims: parseArray(row.unverified_claims),
     contradictions: parseArray(row.contradictions),
@@ -156,7 +164,7 @@ export async function buildHealth(env: Env): Promise<Response> {
   return Response.json({
     ok: true,
     schedule: "*/3 * * * *",
-    model: "@cf/meta/llama-3.2-1b-instruct",
+    model: AI_MODEL,
     queue: Object.fromEntries(counts.results.map((row) => [row.status.toLowerCase(), row.count])),
     pipeline: state,
     checkedAt: Date.now()

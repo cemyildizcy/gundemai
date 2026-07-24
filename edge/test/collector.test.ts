@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { categoryFor } from "../src/categories";
-import { parseRss, parseTelegram } from "../src/collector";
+import { isSameNewsEvent, parseRss, parseTelegram } from "../src/collector";
 import type { NewsSource } from "../src/types";
 
 const NOW = Date.UTC(2026, 6, 23, 9, 0, 0);
@@ -67,5 +67,22 @@ test("deterministic category overrides a broad source hint", () => {
   assert.equal(
     categoryFor("Merkez Bankası faiz kararını açıkladı", "TCMB toplantısı tamamlandı", "Son Dakika"),
     "Finans"
+  );
+});
+
+test("similar headlines from separate sources represent one event", () => {
+  assert.equal(
+    isSameNewsEvent(
+      "Merkez Bankası politika faizini yüzde 50 seviyesinde sabit tuttu",
+      "TCMB politika faizini yüzde 50'de sabit bıraktı"
+    ),
+    true
+  );
+  assert.equal(
+    isSameNewsEvent(
+      "Merkez Bankası politika faizini yüzde 50 seviyesinde sabit tuttu",
+      "Milli takım Avrupa Şampiyonası kadrosunu açıkladı"
+    ),
+    false
   );
 });

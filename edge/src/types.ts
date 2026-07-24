@@ -27,6 +27,8 @@ export interface Env {
   ADMIN_TOKEN?: string;
   LEGACY_FEED_URL?: string;
   ANALYSES_PER_RUN?: string;
+  OPENROUTER_API_KEY?: string;
+  OPENROUTER_MODELS?: string;
 }
 
 export interface NewsSource {

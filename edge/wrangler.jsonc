@@ -25,7 +25,8 @@
   "vars": {
     "FIREBASE_PROJECT_ID": "gundemai",
     "LEGACY_FEED_URL": "https://gundemai.web.app/v1/news.json",
-    "ANALYSES_PER_RUN": "2"
+    "ANALYSES_PER_RUN": "3",
+    "OPENROUTER_MODELS": "openrouter/free,nvidia/nemotron-3-super-120b-a12b:free"
   },
   "observability": {
     "enabled": true,

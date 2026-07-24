@@ -182,6 +182,38 @@ test("continues with the next candidate after a rejected analysis", async () => 
   assert.equal(result.published, 1);
 });
 
+test("returns a reserved daily slot when analysis fails", async () => {
+  const store = new InMemoryNewsStore();
+  const secondRaw = {
+    ...raw,
+    id: "raw-after-failure",
+    title: "TCMB yeni para politikasi raporunu kamuoyuna sundu",
+    url: "https://example.com/tcmb-after-failure",
+    publishedAt: raw.publishedAt - 1
+  };
+  let analysisCalls = 0;
+  const pipeline = new NewsPipeline({
+    collectors: [{ collect: async () => [raw, secondRaw] }],
+    analyzer: {
+      analyze: async () => {
+        analysisCalls += 1;
+        if (analysisCalls === 1) throw new Error("temporary provider failure");
+        return valid;
+      }
+    },
+    store,
+    maxNewArticles: 1,
+    maxAnalysisAttempts: 2,
+    maxNewArticlesPerDay: 1
+  });
+
+  const result = await pipeline.run();
+
+  assert.equal(result.rejected, 1);
+  assert.equal(result.published, 1);
+  assert.equal(analysisCalls, 2);
+});
+
 test("interleaves regular sources and Telegram while rotating categories", () => {
   const clusters = [
     cluster("rss-finance-1", "Finans", "RSS Finance", 400),

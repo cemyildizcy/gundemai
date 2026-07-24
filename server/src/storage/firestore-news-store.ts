@@ -33,6 +33,19 @@ export class FirestoreNewsStore implements NewsStore {
     });
   }
 
+  async releaseAnalysisSlot(dayKey: string): Promise<void> {
+    const reference = this.firestore.collection("pipeline_state").doc(`ai_quota_${dayKey}`);
+    await this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (!snapshot.exists) return;
+      const used = Number(snapshot.get("used") ?? 0);
+      transaction.set(reference, {
+        used: Math.max(0, used - 1),
+        updatedAt: Date.now()
+      }, { merge: true });
+    });
+  }
+
   async saveReady(article: ReadyArticle): Promise<void> {
     await this.firestore.collection("news_ready").doc(article.id).set(article, { merge: false });
   }

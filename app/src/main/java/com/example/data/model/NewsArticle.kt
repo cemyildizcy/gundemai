@@ -16,9 +16,9 @@ data class NewsArticle(
     val publishedAtFormatted: String,
     val whatHappened: String,
     val whyImportant: String,
-    val missingInformation: String = "Resmî makamların ayrıntılı bildirimi beklenmektedir.",
-    val verificationStatus: String = "MULTI_SOURCE_CONFIRMED",
-    val confidenceScore: Int = 88,
+    val missingInformation: String = "Kaynaklarda belirtilmedi.",
+    val verificationStatus: String = "INSUFFICIENT_INFORMATION",
+    val confidenceScore: Int = 0,
     val sourceCount: Int = 1,
     val sourcesJson: String = "[]",
     val possibleImpactsJson: String = "[]",
@@ -27,6 +27,6 @@ data class NewsArticle(
     val verifiedFactsJson: String = "[]",
     val isBookmarked: Boolean = false,
     val isBreaking: Boolean = false,
-    val isAiAnalyzed: Boolean = true,
+    val isAiAnalyzed: Boolean = false,
     val topicTagsJson: String = "[]"
 )

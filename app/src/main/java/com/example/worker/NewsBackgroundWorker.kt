@@ -13,6 +13,7 @@ import androidx.work.WorkerParameters
 import com.example.data.repository.NewsRepository
 import com.example.data.repository.UserPreferencesRepository
 import com.example.notification.NewsNotificationDispatcher
+import com.example.notification.NotificationTopicManager
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
@@ -26,6 +27,7 @@ class NewsBackgroundWorker(
         val selectedCategories = UserPreferencesRepository(applicationContext)
             .notificationCategories
             .first()
+        runCatching { NotificationTopicManager.syncSubscriptions(selectedCategories) }
         val sync = repository.fetchAndRefreshNews(forceRefresh = true).getOrThrow()
 
         // The first sync establishes a baseline and must not announce older feed items as new.
@@ -52,7 +54,7 @@ class NewsBackgroundWorker(
 
     companion object {
         const val WORK_NAME_PERIODIC = "gundem_ai_periodic_news_sync"
-        private const val MAX_NOTIFICATIONS_PER_SYNC = 3
+        private const val MAX_NOTIFICATIONS_PER_SYNC = 1
 
         fun schedulePeriodicSync(context: Context) {
             val request = PeriodicWorkRequestBuilder<NewsBackgroundWorker>(15, TimeUnit.MINUTES)

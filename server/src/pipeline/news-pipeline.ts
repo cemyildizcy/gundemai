@@ -75,6 +75,7 @@ export class NewsPipeline {
 
     for (const cluster of clusters) {
       const now = this.now();
+      let reservedDayKey: string | null = null;
       if (await this.store.hasReady(cluster.id, ANALYSIS_VERSION) ||
           await this.store.hasRecentRejection(cluster.id, ANALYSIS_VERSION, now - REJECTION_RETRY_DELAY_MS)) {
         counters.skipped += 1;
@@ -96,6 +97,7 @@ export class NewsPipeline {
           counters.deferred += 1;
           continue;
         }
+        reservedDayKey = dayKey;
       }
 
       try {
@@ -106,6 +108,7 @@ export class NewsPipeline {
         publishedArticles.push(article);
         counters.published += 1;
       } catch (error) {
+        if (reservedDayKey) await this.store.releaseAnalysisSlot(reservedDayKey);
         const reason = sanitizeRejectionReason(error);
         counters.rejected += 1;
         counters.rejectionReasons.push(reason);

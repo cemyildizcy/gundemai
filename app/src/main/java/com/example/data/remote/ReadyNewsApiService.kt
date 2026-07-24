@@ -18,6 +18,16 @@ interface ReadyNewsApiService {
     ): ReadyNewsResponse
 }
 
+interface BackendDiscoveryApiService {
+    @GET("backend.json")
+    suspend fun getBackend(): BackendDiscoveryDto
+}
+
+@JsonClass(generateAdapter = true)
+data class BackendDiscoveryDto(
+    val apiBaseUrl: String
+)
+
 @JsonClass(generateAdapter = true)
 data class ReadyNewsResponse(
     val articles: List<ReadyNewsDto>,

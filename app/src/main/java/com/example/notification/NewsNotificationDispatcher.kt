@@ -16,6 +16,7 @@ import com.example.util.DateUtils
 
 class NewsNotificationDispatcher(private val context: Context) {
     private val repository = NewsRepository(context)
+    private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     suspend fun dispatch(
         articleId: String,
@@ -42,7 +43,18 @@ class NewsNotificationDispatcher(private val context: Context) {
                 isRead = false
             )
         )
-        showSystemNotification(articleId, articleTitle, body)
+        if (reserveSystemNotificationSlot(now)) {
+            showSystemNotification(articleId, articleTitle, body)
+        }
+    }
+
+    private fun reserveSystemNotificationSlot(now: Long): Boolean = synchronized(notificationLock) {
+        val lastShownAt = preferences.getLong(KEY_LAST_SYSTEM_NOTIFICATION_AT, 0L)
+        if (now - lastShownAt < MIN_SYSTEM_NOTIFICATION_INTERVAL_MS) {
+            false
+        } else {
+            preferences.edit().putLong(KEY_LAST_SYSTEM_NOTIFICATION_AT, now).commit()
+        }
     }
 
     private fun showSystemNotification(articleId: String, title: String, body: String) {
@@ -86,5 +98,9 @@ class NewsNotificationDispatcher(private val context: Context) {
 
     companion object {
         const val CHANNEL_ID = "gundem_ai_category_channel_v2"
+        private const val PREFERENCES_NAME = "gundem_notification_delivery"
+        private const val KEY_LAST_SYSTEM_NOTIFICATION_AT = "last_system_notification_at"
+        private const val MIN_SYSTEM_NOTIFICATION_INTERVAL_MS = 2 * 60 * 1000L
+        private val notificationLock = Any()
     }
 }

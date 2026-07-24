@@ -84,9 +84,10 @@ jobs:
         shell: bash
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           ADMIN_TOKEN: ${{ secrets.GUNDEMAI_ADMIN_TOKEN }}
         run: |
-          node -e "const fs=require('fs');const value={FIREBASE_SERVICE_ACCOUNT:process.env.FIREBASE_SERVICE_ACCOUNT};if(process.env.ADMIN_TOKEN)value.ADMIN_TOKEN=process.env.ADMIN_TOKEN;fs.writeFileSync('.runtime-secrets.json',JSON.stringify(value));"
+          node -e "const fs=require('fs');const value={FIREBASE_SERVICE_ACCOUNT:process.env.FIREBASE_SERVICE_ACCOUNT};if(process.env.OPENROUTER_API_KEY)value.OPENROUTER_API_KEY=process.env.OPENROUTER_API_KEY;if(process.env.ADMIN_TOKEN)value.ADMIN_TOKEN=process.env.ADMIN_TOKEN;fs.writeFileSync('.runtime-secrets.json',JSON.stringify(value));"
           npx wrangler secret bulk .runtime-secrets.json
           rm -f .runtime-secrets.json
 
@@ -94,6 +95,7 @@ jobs:
         run: npx wrangler workflows trigger gundemai-news-pipeline '{"reason":"manual"}'
 
       - name: Show service URL
+        id: service
         shell: bash
         run: |
           subdomain="$(curl --fail --silent --show-error \
@@ -101,7 +103,25 @@ jobs:
             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
             | jq -r '.result.subdomain')"
           service_url="https://gundemai-edge.${subdomain}.workers.dev"
+          echo "service_url=$service_url" >> "$GITHUB_OUTPUT"
           echo "### GundemAI Edge deployed" >> "$GITHUB_STEP_SUMMARY"
           echo "$service_url/v1/news" >> "$GITHUB_STEP_SUMMARY"
           echo "$service_url/health.json" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=GundemAI Edge URL::$service_url"
+
+      - name: Preserve the current feed and publish Edge discovery
+        shell: bash
+        run: |
+          curl --fail --silent --show-error \
+            https://gundemai.web.app/v1/news.json \
+            --output ../hosting/public/v1/news.json
+          node -e "const fs=require('fs');fs.writeFileSync('../hosting/public/backend.json',JSON.stringify({apiBaseUrl:process.argv[1]+'/'},null,2)+'\n');" \
+            "${{ steps.service.outputs.service_url }}"
+
+      - name: Publish the active backend address
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GUNDEMAI }}
+          channelId: live
+          projectId: gundemai

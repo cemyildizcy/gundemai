@@ -25,6 +25,11 @@ export class InMemoryNewsStore implements NewsStore {
     return true;
   }
 
+  async releaseAnalysisSlot(dayKey: string): Promise<void> {
+    const used = this.analysisUsage.get(dayKey) ?? 0;
+    this.analysisUsage.set(dayKey, Math.max(0, used - 1));
+  }
+
   async saveReady(article: ReadyArticle): Promise<void> {
     this.ready.set(article.id, article);
   }

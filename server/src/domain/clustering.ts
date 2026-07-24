@@ -38,10 +38,11 @@ function sameEvent(left: RawArticle, right: RawArticle): boolean {
 }
 
 function stableId(items: RawArticle[]): string {
-  const signature = items
-    .map((item) => fold(item.url || item.title))
-    .sort()
-    .join("|");
+  const anchor = [...items].sort((left, right) =>
+    left.publishedAt - right.publishedAt || left.url.localeCompare(right.url)
+  )[0];
+  if (!anchor) throw new Error("Cannot identify an empty article cluster");
+  const signature = fold(anchor.url || anchor.title);
   return createHash("sha256").update(signature).digest("hex").slice(0, 24);
 }
 

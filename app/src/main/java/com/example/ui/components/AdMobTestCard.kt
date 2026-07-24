@@ -30,6 +30,7 @@ fun AdMobTestAdaptiveBanner(modifier: Modifier = Modifier) {
 
 @Composable
 private fun AdMobBanner(modifier: Modifier) {
+    if (!BuildConfig.ADS_ENABLED) return
     val canRequestAds by AdConsentManager.canRequestAds.collectAsStateWithLifecycle()
     if (!canRequestAds) return
 

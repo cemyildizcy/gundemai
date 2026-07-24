@@ -2,7 +2,7 @@ import { XMLParser } from "fast-xml-parser";
 
 import type { RawArticle } from "../domain/raw-article.js";
 import type { NewsCollector } from "../pipeline/contracts.js";
-import { cleanSourceText, fetchText, parsePublishedAt, stableRawId } from "./shared.js";
+import { cleanSourceText, fetchText, isFreshPublishedAt, parsePublishedAt, stableRawId } from "./shared.js";
 
 export interface RssSource {
   name: string;
@@ -33,7 +33,7 @@ function imageFrom(item: Record<string, unknown>): string | null {
   return description.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ?? null;
 }
 
-export function parseRssFeed(xml: string, source: RssSource): RawArticle[] {
+export function parseRssFeed(xml: string, source: RssSource, now = Date.now()): RawArticle[] {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
@@ -56,6 +56,7 @@ export function parseRssFeed(xml: string, source: RssSource): RawArticle[] {
     const descriptionRaw = stringValue(item.description ?? item.summary ?? item["content:encoded"] ?? item.content);
     const description = cleanSourceText(descriptionRaw);
     const publishedAt = parsePublishedAt(stringValue(item.pubDate ?? item.published ?? item.updated ?? item["dc:date"]));
+    if (!isFreshPublishedAt(publishedAt, now)) return [];
 
     return [{
       id: stableRawId(link),

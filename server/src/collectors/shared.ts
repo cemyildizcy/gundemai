@@ -28,7 +28,13 @@ export function parsePublishedAt(value: string | number | null | undefined): num
     const parsed = Date.parse(value);
     if (Number.isFinite(parsed)) return parsed;
   }
-  return Date.now();
+  return 0;
+}
+
+export function isFreshPublishedAt(publishedAt: number, now = Date.now()): boolean {
+  if (!Number.isFinite(publishedAt) || publishedAt <= 0) return false;
+  return publishedAt >= now - 36 * 60 * 60 * 1000 &&
+    publishedAt <= now + 60 * 60 * 1000;
 }
 
 export async function fetchText(url: string, timeoutMs = 10_000): Promise<string> {

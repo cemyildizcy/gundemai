@@ -61,3 +61,18 @@ test("uses stable cluster ids regardless of source order", () => {
   const id2 = clusterRawArticles([second, first])[0]?.id;
   assert.equal(id1, id2);
 });
+
+test("keeps the cluster id when a later source joins the same event", () => {
+  const first = article({});
+  const second = article({
+    id: "b",
+    sourceName: "Kaynak B",
+    url: "https://example.com/b",
+    publishedAt: baseTime + 60_000
+  });
+
+  const initialId = clusterRawArticles([first])[0]?.id;
+  const enrichedId = clusterRawArticles([first, second])[0]?.id;
+
+  assert.equal(enrichedId, initialId);
+});

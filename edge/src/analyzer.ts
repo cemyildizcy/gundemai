@@ -2,7 +2,11 @@ import { categoryFor } from "./categories";
 import { cleanText, fold, jsonStringArray, truncate } from "./text";
 import type { Env, QueueRow, SourceRow } from "./types";
 
-const MODEL = "@cf/meta/llama-3.2-1b-instruct";
+export const AI_MODEL = "@cf/google/gemma-4-26b-a4b-it";
+const DEFAULT_OPENROUTER_MODELS = [
+  "openrouter/free",
+  "nvidia/nemotron-3-super-120b-a12b:free"
+];
 const PROCESSING_TIMEOUT_MS = 20 * 60 * 1000;
 const GENERIC_PHRASES = [
   "sektorel gelismeler ve kamuoyu bilgilendirmesi acisindan onem tasimaktadir",
@@ -70,7 +74,7 @@ function parseAnalysis(raw: string): ModelAnalysis {
   return analysis;
 }
 
-function promptFor(row: QueueRow, sources: SourceRow[]): AiTextGenerationInput {
+function promptFor(row: QueueRow, sources: SourceRow[]): ChatCompletionsMessagesInput {
   const sourceLines = sources.slice(0, 5)
     .map((source, index) => `${index + 1}. ${source.name}: ${truncate(source.headline, 220)}`)
     .join("\n");
@@ -96,16 +100,61 @@ function promptFor(row: QueueRow, sources: SourceRow[]): AiTextGenerationInput {
         ].join("\n\n")
       }
     ],
-    max_tokens: 380,
+    max_completion_tokens: 420,
     temperature: 0.2,
-    repetition_penalty: 1.08
+    response_format: { type: "json_object" },
+    chat_template_kwargs: { enable_thinking: false }
   };
 }
 
 async function callAi(env: Env, row: QueueRow, sources: SourceRow[]): Promise<ModelAnalysis> {
-  const output = await env.AI.run(MODEL, promptFor(row, sources)) as { response?: string };
-  if (!output.response) throw new Error("Workers AI bos yanit verdi");
-  return parseAnalysis(output.response);
+  const errors: string[] = [];
+  try {
+    const output = await env.AI.run(AI_MODEL, promptFor(row, sources));
+    const content = output.choices[0]?.message.content;
+    if (!content) throw new Error("Workers AI bos yanit verdi");
+    return parseAnalysis(content);
+  } catch (error) {
+    errors.push(`Cloudflare: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  if (env.OPENROUTER_API_KEY) {
+    const configuredModels = env.OPENROUTER_MODELS
+      ?.split(",")
+      .map((model) => model.trim())
+      .filter(Boolean);
+    for (const model of configuredModels?.length ? configuredModels : DEFAULT_OPENROUTER_MODELS) {
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://gundemai.web.app",
+            "X-Title": "GundemAI"
+          },
+          body: JSON.stringify({
+            model,
+            ...promptFor(row, sources),
+            stream: false
+          }),
+          signal: AbortSignal.timeout(25_000)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${truncate(await response.text(), 200)}`);
+        }
+        const output = await response.json<{
+          choices?: Array<{ message?: { content?: string | null } }>;
+        }>();
+        const content = output.choices?.[0]?.message?.content;
+        if (!content) throw new Error("bos yanit");
+        return parseAnalysis(content);
+      } catch (error) {
+        errors.push(`${model}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+  throw new Error(truncate(errors.join(" | "), 600));
 }
 
 function nextRetryAt(error: unknown, attempts: number, now: number): number {
@@ -213,8 +262,8 @@ async function markRetry(env: Env, row: QueueRow, error: unknown, now: number): 
 }
 
 export async function analyzePending(env: Env, now = Date.now()): Promise<AnalysisRunResult> {
-  const requested = Number.parseInt(env.ANALYSES_PER_RUN ?? "2", 10);
-  const limit = Number.isFinite(requested) ? Math.max(1, Math.min(requested, 3)) : 2;
+  const requested = Number.parseInt(env.ANALYSES_PER_RUN ?? "3", 10);
+  const limit = Number.isFinite(requested) ? Math.max(1, Math.min(requested, 4)) : 3;
   const rows = await claimRows(env, limit, now);
   const notificationCandidates: string[] = [];
   const errors: string[] = [];

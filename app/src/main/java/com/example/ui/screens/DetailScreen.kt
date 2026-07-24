@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.NewsArticle
 import com.example.ui.components.AdMobTestAdaptiveBanner
+import com.example.util.DateUtils
 import com.example.ui.components.SourceTimelineView
 import com.example.ui.components.VerificationBadge
 import com.squareup.moshi.Moshi
@@ -255,7 +256,7 @@ fun DetailScreen(
                         fontSize = 11.sp
                     )
                     Text(
-                        text = article.publishedAtFormatted,
+                        text = DateUtils.formatRelativeTime(article.publishedAt),
                         fontSize = 11.sp,
                         color = secondaryTextColor,
                         maxLines = 1

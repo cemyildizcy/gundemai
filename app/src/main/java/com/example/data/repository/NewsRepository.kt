@@ -8,6 +8,7 @@ import com.example.data.model.NewsArticle
 import com.example.data.model.SearchHistoryItem
 import com.example.data.model.UserNotification
 import com.example.data.remote.ReadyNewsApiService
+import com.example.data.remote.BackendDiscoveryApiService
 import com.example.data.remote.toEntity
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -31,7 +32,8 @@ data class NewsSyncResult(
 class NewsRepository(
     context: Context,
     private val newsDao: NewsDao = AppDatabase.getInstance(context).newsDao(),
-    private val readyNewsApi: ReadyNewsApiService = createReadyNewsApi()
+    private val readyNewsApi: ReadyNewsApiService = createReadyNewsApi(BuildConfig.GUNDEMAI_API_BASE_URL),
+    private val discoveryApi: BackendDiscoveryApiService = createDiscoveryApi()
 ) {
     private val syncMutex = Mutex()
     @Volatile private var lastFetchAt = 0L
@@ -91,7 +93,6 @@ class NewsRepository(
     }
 
     suspend fun fetchAndRefreshNews(
-        category: String = "Sana Özel",
         forceRefresh: Boolean = false
     ): Result<NewsSyncResult> = withContext(Dispatchers.IO) {
         runCatching {
@@ -107,26 +108,38 @@ class NewsRepository(
                     )
                 }
 
-                val response = readyNewsApi.getReadyNews(limit = MAX_READY_ARTICLES)
+                val activeApi = resolveReadyNewsApi()
+                val response = runCatching {
+                    activeApi.getReadyNews(limit = MAX_READY_ARTICLES)
+                }.getOrElse { error ->
+                    if (activeApi === readyNewsApi) throw error
+                    discoveredReadyNewsApi = null
+                    readyNewsApi.getReadyNews(limit = MAX_READY_ARTICLES)
+                }
                 check(response.sharedAnalysis) { "Sunucu ortak analiz akışı döndürmedi" }
 
                 val existingIds = newsDao.getAllArticleIdsSync().toSet()
+                val bookmarkedIds = newsDao.getBookmarkedArticleIdsSync().toSet()
                 val validDtos = response.articles
                     .asSequence()
                     .filter { it.status == "READY" }
                     .filter { it.id.isNotBlank() && it.title.isNotBlank() && it.summary.isNotBlank() }
                     .filter { it.whatHappened.isNotBlank() && it.whyImportant.isNotBlank() }
                     .toList()
-                val mapped = buildList {
-                    for (dto in validDtos) {
-                        val bookmarked = newsDao.getArticleByIdSync(dto.id)?.isBookmarked == true
-                        add(dto.toEntity(isBookmarked = bookmarked))
-                    }
+                val mapped = validDtos.map { dto ->
+                    dto.toEntity(isBookmarked = dto.id in bookmarkedIds)
                 }
 
-                val newArticles = mapped.filterNot { it.id in existingIds }
-                newsDao.deleteUnbookmarkedArticles()
-                if (mapped.isNotEmpty()) newsDao.insertArticles(mapped)
+                val recentNewIds = validDtos
+                    .asSequence()
+                    .filter { it.id !in existingIds }
+                    .filter { it.readyAt >= now - NEW_ARTICLE_WINDOW_MS }
+                    .map { it.id }
+                    .toSet()
+                val newArticles = mapped.filter { it.id in recentNewIds }
+                if (mapped.isNotEmpty()) {
+                    newsDao.replaceReadyFeed(mapped, LOCAL_ARTICLE_LIMIT)
+                }
                 lastFetchAt = now
 
                 NewsSyncResult(
@@ -139,24 +152,51 @@ class NewsRepository(
         }
     }
 
+    private suspend fun resolveReadyNewsApi(): ReadyNewsApiService {
+        discoveredReadyNewsApi?.let { return it }
+        val discoveredUrl = runCatching { discoveryApi.getBackend().apiBaseUrl.trim() }.getOrNull()
+        if (discoveredUrl.isNullOrBlank() ||
+            !discoveredUrl.startsWith("https://") ||
+            !discoveredUrl.endsWith("/")
+        ) {
+            return readyNewsApi
+        }
+        return createReadyNewsApi(discoveredUrl).also { discoveredReadyNewsApi = it }
+    }
+
     companion object {
         private const val FETCH_CACHE_TIMEOUT_MS = 5 * 60 * 1000L
-        private const val MAX_READY_ARTICLES = 100
+        private const val NEW_ARTICLE_WINDOW_MS = 2 * 60 * 60 * 1000L
+        private const val MAX_READY_ARTICLES = 250
+        private const val LOCAL_ARTICLE_LIMIT = 300
 
-        private fun createReadyNewsApi(): ReadyNewsApiService {
+        @Volatile private var discoveredReadyNewsApi: ReadyNewsApiService? = null
+
+        private fun createHttpClient(): OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
+            .build()
+
+        private fun createReadyNewsApi(baseUrl: String): ReadyNewsApiService {
             val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
-            val client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .build()
 
             return Retrofit.Builder()
-                .baseUrl(BuildConfig.GUNDEMAI_API_BASE_URL)
-                .client(client)
+                .baseUrl(baseUrl)
+                .client(createHttpClient())
                 .addConverterFactory(MoshiConverterFactory.create(moshi))
                 .build()
                 .create(ReadyNewsApiService::class.java)
+        }
+
+        private fun createDiscoveryApi(): BackendDiscoveryApiService {
+            val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+            return Retrofit.Builder()
+                .baseUrl(BuildConfig.GUNDEMAI_API_BASE_URL)
+                .client(createHttpClient())
+                .addConverterFactory(MoshiConverterFactory.create(moshi))
+                .build()
+                .create(BackendDiscoveryApiService::class.java)
         }
     }
 }

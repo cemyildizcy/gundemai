@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.data.model.NewsArticle
+import com.example.util.DateUtils
 
 @Composable
 fun NewsCard(
@@ -126,7 +127,7 @@ fun NewsCard(
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = article.publishedAtFormatted,
+                        text = DateUtils.formatRelativeTime(article.publishedAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1

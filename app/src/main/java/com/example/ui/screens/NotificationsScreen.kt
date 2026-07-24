@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserNotification
+import com.example.util.DateUtils
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -420,7 +421,7 @@ fun NotificationsScreen(
                                 }
 
                                 Text(
-                                    text = notif.timestampFormatted,
+                                    text = DateUtils.formatRelativeTime(notif.timestamp),
                                     fontSize = 11.sp,
                                     color = secondaryTextColor
                                 )

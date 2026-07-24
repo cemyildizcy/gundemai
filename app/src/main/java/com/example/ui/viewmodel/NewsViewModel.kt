@@ -158,6 +158,8 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     fun logoutUser() {
         viewModelScope.launch {
             authRepository.logout()
+            repository.clearAllUserData()
+            userPrefs.setProUserStatus(false)
             userPrefs.setAuthCompleted(false)
         }
     }
@@ -167,7 +169,15 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
             when (val result = authRepository.deleteCurrentAccount()) {
                 is com.example.data.auth.AuthResult.Success -> {
                     runCatching { repository.clearAllUserData() }
-                    onResult(true, "Hesabınız ve bu cihazdaki kişisel verileriniz silindi.")
+                        .onSuccess {
+                            onResult(true, "Hesabınız ve bu cihazdaki kişisel verileriniz silindi.")
+                        }
+                        .onFailure {
+                            onResult(
+                                false,
+                                "Hesabınız silindi ancak cihazdaki yerel veriler temizlenemedi. Uygulama verilerini sistem ayarlarından temizleyin."
+                            )
+                        }
                 }
                 is com.example.data.auth.AuthResult.Error -> onResult(false, result.message)
             }
@@ -176,6 +186,9 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun navigateToAuthScreen() {
         viewModelScope.launch {
+            authRepository.logout()
+            repository.clearAllUserData()
+            userPrefs.setProUserStatus(false)
             userPrefs.setAuthCompleted(false)
         }
     }
@@ -220,14 +233,44 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
         playBillingManager.resetPurchaseState()
     }
 
-    // Articles Feed Flow
-    val articlesFeed: StateFlow<List<NewsArticle>> = combine(_selectedCategory, _searchQuery) { cat, query ->
-        Pair(cat, query)
-    }.flatMapLatest { (category, query) ->
+    // Personalization is local and deterministic; every user still sees the same server analysis.
+    val articlesFeed: StateFlow<List<NewsArticle>> = combine(
+        repository.getAllArticles(),
+        _selectedCategory,
+        _searchQuery,
+        followedCategories,
+        followedTopics
+    ) { articles, category, query, selectedCategories, selectedTopics ->
+        val searched = query.trim().takeIf { it.isNotEmpty() }?.let { needle ->
+            articles.filter { article ->
+                article.title.contains(needle, ignoreCase = true) ||
+                    article.summary.contains(needle, ignoreCase = true) ||
+                    article.whatHappened.contains(needle, ignoreCase = true)
+            }
+        } ?: articles
+
         if (query.isNotBlank()) {
-            repository.searchArticles(query)
+            searched
+        } else if (category != "Sana Özel") {
+            searched.filter { it.category == category }
         } else {
-            repository.getArticlesByCategory(category)
+            val categorySelection = selectedCategories - "Sana Özel"
+            val personalized = if (categorySelection.isEmpty()) {
+                searched
+            } else {
+                searched.filter { it.category in categorySelection }
+            }
+            val topicNames = FollowedTopic.POPULAR_TOPICS
+                .filter { it.id in selectedTopics }
+                .map { it.name }
+            personalized.sortedWith(
+                compareByDescending<NewsArticle> { article ->
+                    topicNames.any { topic ->
+                        article.title.contains(topic, ignoreCase = true) ||
+                            article.summary.contains(topic, ignoreCase = true)
+                    }
+                }.thenByDescending { it.publishedAt }.thenBy { it.id }
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -334,7 +377,7 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                repository.fetchAndRefreshNews(_selectedCategory.value, forceRefresh)
+                repository.fetchAndRefreshNews(forceRefresh)
                     .onSuccess { _syncError.value = null }
                     .onFailure { _syncError.value = "Haber sunucusuna ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin." }
             } finally {

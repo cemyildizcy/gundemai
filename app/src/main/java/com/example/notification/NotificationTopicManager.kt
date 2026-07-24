@@ -2,6 +2,8 @@ package com.example.notification
 
 import com.example.data.remote.ServerCategory
 import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.tasks.await
 
 object NotificationTopicManager {
     private val topicsByCanonicalCategory = mapOf(
@@ -22,15 +24,21 @@ object NotificationTopicManager {
         "Saglik" to "news_saglik"
     )
 
-    fun syncSubscriptions(selectedDisplayCategories: Set<String>) {
+    suspend fun syncSubscriptions(selectedDisplayCategories: Set<String>) {
         val selectedTopics = selectedDisplayCategories
             .map(ServerCategory::toCanonicalName)
             .mapNotNull(topicsByCanonicalCategory::get)
             .toSet()
         val messaging = FirebaseMessaging.getInstance()
         topicsByCanonicalCategory.values.forEach { topic ->
-            if (topic in selectedTopics) messaging.subscribeToTopic(topic)
-            else messaging.unsubscribeFromTopic(topic)
+            val operation: () -> com.google.android.gms.tasks.Task<Void> = {
+                if (topic in selectedTopics) messaging.subscribeToTopic(topic)
+                else messaging.unsubscribeFromTopic(topic)
+            }
+            runCatching { operation().await() }.getOrElse {
+                delay(500)
+                operation().await()
+            }
         }
     }
 

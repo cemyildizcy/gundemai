@@ -33,6 +33,8 @@ interface NotificationRow {
   source_name: string;
 }
 
+const NOTIFICATION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+
 export interface NotificationResult {
   attempted: number;
   sent: number;
@@ -95,7 +97,15 @@ async function accessToken(serviceAccount: ServiceAccount): Promise<string> {
   return result.access_token;
 }
 
-async function rowsFor(env: Env): Promise<NotificationRow[]> {
+async function rowFor(env: Env, now: number): Promise<NotificationRow | null> {
+  await env.DB.prepare(`
+    UPDATE news_items
+    SET notification_sent_at = -1
+    WHERE status = 'READY'
+      AND notification_sent_at IS NULL
+      AND ready_at < ?
+  `).bind(now - NOTIFICATION_MAX_AGE_MS).run();
+
   const result = await env.DB.prepare(`
     SELECT
       n.id,
@@ -107,10 +117,12 @@ async function rowsFor(env: Env): Promise<NotificationRow[]> {
     WHERE n.status = 'READY'
       AND n.notification_sent_at IS NULL
       AND n.ready_at >= ?
-    ORDER BY n.ready_at ASC
-    LIMIT 10
-  `).bind(Date.now() - 24 * 60 * 60 * 1000).all<NotificationRow>();
-  return result.results;
+    ORDER BY
+      CASE WHEN n.category = 'Son Dakika' THEN 0 ELSE 1 END,
+      n.ready_at DESC
+    LIMIT 1
+  `).bind(now - NOTIFICATION_MAX_AGE_MS).first<NotificationRow>();
+  return result;
 }
 
 export async function sendNotifications(env: Env): Promise<NotificationResult> {
@@ -118,8 +130,8 @@ export async function sendNotifications(env: Env): Promise<NotificationResult> {
     return { attempted: 0, sent: 0, failed: 0, skipped: true, errors: [] };
   }
 
-  const rows = await rowsFor(env);
-  if (rows.length === 0) {
+  const row = await rowFor(env, Date.now());
+  if (!row) {
     return { attempted: 0, sent: 0, failed: 0, skipped: false, errors: [] };
   }
 
@@ -128,12 +140,13 @@ export async function sendNotifications(env: Env): Promise<NotificationResult> {
   let sent = 0;
   const errors: string[] = [];
 
-  for (const row of rows) {
-    const topic = TOPICS_BY_CATEGORY[row.category];
-    if (!topic) {
-      errors.push(`${row.id}: bildirim konusu bulunamadi`);
-      continue;
-    }
+  const topic = TOPICS_BY_CATEGORY[row.category];
+  if (!topic) {
+    errors.push(`${row.id}: bildirim konusu bulunamadi`);
+    await env.DB.prepare(
+      "UPDATE news_items SET notification_sent_at = -1 WHERE id = ?"
+    ).bind(row.id).run();
+  } else {
     const response = await fetch(
       `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/messages:send`,
       {
@@ -159,18 +172,18 @@ export async function sendNotifications(env: Env): Promise<NotificationResult> {
     );
     if (!response.ok) {
       errors.push(`${row.id}: FCM HTTP ${response.status} ${truncate(await response.text(), 240)}`);
-      continue;
+    } else {
+      sent = 1;
+      await env.DB.prepare(
+        "UPDATE news_items SET notification_sent_at = ? WHERE id = ?"
+      ).bind(Date.now(), row.id).run();
     }
-    sent += 1;
-    await env.DB.prepare(
-      "UPDATE news_items SET notification_sent_at = ? WHERE id = ?"
-    ).bind(Date.now(), row.id).run();
   }
 
   return {
-    attempted: rows.length,
+    attempted: 1,
     sent,
-    failed: rows.length - sent,
+    failed: 1 - sent,
     skipped: false,
     errors
   };

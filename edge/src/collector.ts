@@ -3,6 +3,7 @@ import { cleanText, fold, parseDate, sha256, truncate } from "./text";
 import type { Env, NewsSource, RawNewsItem } from "./types";
 
 const FEED_LOOKBACK_MS = 36 * 60 * 60 * 1000;
+const EVENT_MATCH_WINDOW_MS = 48 * 60 * 60 * 1000;
 const MAX_ITEMS_PER_SOURCE = 25;
 const URL_QUERY_CHUNK = 70;
 const WRITE_BATCH_SIZE = 80;
@@ -142,15 +143,29 @@ async function fetchSource(source: NewsSource, now: number): Promise<RawNewsItem
 }
 
 async function eventIdentity(item: RawNewsItem): Promise<{ id: string; eventKey: string }> {
-  const tokens = fold(item.title)
-    .split(" ")
-    .filter((token) => token.length >= 3 && !EVENT_STOPWORDS.has(token));
+  const tokens = eventTokens(item.title);
   const day = new Date(item.publishedAt).toISOString().slice(0, 10);
   const signature = tokens.length >= 4
     ? `${day}|${[...new Set(tokens)].sort().slice(0, 10).join("|")}`
     : `${day}|${item.url}`;
   const digest = await sha256(signature);
   return { id: digest.slice(0, 24), eventKey: digest };
+}
+
+function eventTokens(title: string): string[] {
+  return [...new Set(
+    fold(title)
+      .split(" ")
+      .filter((token) => token.length >= 3 && !EVENT_STOPWORDS.has(token))
+  )];
+}
+
+export function isSameNewsEvent(leftTitle: string, rightTitle: string): boolean {
+  const left = new Set(eventTokens(leftTitle));
+  const right = new Set(eventTokens(rightTitle));
+  const intersection = [...left].filter((token) => right.has(token)).length;
+  const union = new Set([...left, ...right]).size;
+  return intersection >= 4 || (union > 0 && intersection / union >= 0.5);
 }
 
 function chunks<T>(values: T[], size: number): T[][] {
@@ -175,10 +190,36 @@ async function persistItems(env: Env, items: RawNewsItem[], now: number): Promis
   const unique = [...new Map(items.map((item) => [item.url, item])).values()];
   const knownUrls = await existingUrls(env.DB, unique.map((item) => item.url));
   const unseen = unique.filter((item) => !knownUrls.has(item.url));
-  const prepared: PreparedItem[] = await Promise.all(unseen.map(async (item) => ({
-    ...item,
-    ...await eventIdentity(item)
-  })));
+  const recent = await env.DB.prepare(`
+    SELECT id, event_key, raw_title, published_at
+    FROM news_items
+    WHERE published_at >= ?
+    ORDER BY published_at DESC
+    LIMIT 500
+  `).bind(now - EVENT_MATCH_WINDOW_MS).all<{
+    id: string;
+    event_key: string;
+    raw_title: string;
+    published_at: number;
+  }>();
+  const candidates = [...recent.results];
+  const prepared: PreparedItem[] = [];
+  for (const item of unseen.sort((left, right) => left.publishedAt - right.publishedAt)) {
+    const match = candidates.find((candidate) =>
+      Math.abs(candidate.published_at - item.publishedAt) <= EVENT_MATCH_WINDOW_MS &&
+      isSameNewsEvent(candidate.raw_title, item.title)
+    );
+    const identity = match
+      ? { id: match.id, eventKey: match.event_key }
+      : await eventIdentity(item);
+    prepared.push({ ...item, ...identity });
+    candidates.push({
+      id: identity.id,
+      event_key: identity.eventKey,
+      raw_title: item.title,
+      published_at: item.publishedAt
+    });
+  }
 
   const statements: D1PreparedStatement[] = [];
   for (const item of prepared) {

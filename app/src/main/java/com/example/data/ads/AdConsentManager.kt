@@ -1,6 +1,7 @@
 package com.example.data.ads
 
 import android.app.Activity
+import com.example.BuildConfig
 import com.google.android.gms.ads.MobileAds
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
@@ -21,6 +22,11 @@ object AdConsentManager {
     val privacyOptionsRequired: StateFlow<Boolean> = _privacyOptionsRequired
 
     fun gatherConsent(activity: Activity) {
+        if (!BuildConfig.ADS_ENABLED) {
+            _canRequestAds.value = false
+            _privacyOptionsRequired.value = false
+            return
+        }
         val consentInformation = UserMessagingPlatform.getConsentInformation(activity)
         val params = ConsentRequestParameters.Builder().build()
         consentInformation.requestConsentInfoUpdate(
@@ -41,6 +47,10 @@ object AdConsentManager {
     }
 
     fun showPrivacyOptions(activity: Activity, onComplete: (String?) -> Unit = {}) {
+        if (!BuildConfig.ADS_ENABLED) {
+            onComplete(null)
+            return
+        }
         UserMessagingPlatform.showPrivacyOptionsForm(activity) { error ->
             val consentInformation = UserMessagingPlatform.getConsentInformation(activity)
             updateState(activity, consentInformation)

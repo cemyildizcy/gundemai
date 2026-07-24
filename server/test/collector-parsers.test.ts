@@ -17,7 +17,7 @@ test("parses RSS items and removes HTML from source content", () => {
     name: "Test RSS",
     url: "https://example.com/rss",
     category: "Finans"
-  });
+  }, Date.UTC(2024, 6, 22, 12));
 
   assert.equal(articles.length, 1);
   assert.equal(articles[0]?.title, "Merkez Bankasi & faiz karari");
@@ -38,9 +38,25 @@ test("parses public Telegram preview posts without generating fallback news", ()
     handle: "kanal",
     name: "Test Kanal",
     category: "Teknoloji"
-  });
+  }, Date.UTC(2024, 6, 22, 12));
 
   assert.equal(articles.length, 1);
   assert.equal(articles[0]?.url, "https://t.me/kanal/42");
   assert.equal(articles[0]?.content, "Yeni model API uzerinden yayinlandi.");
+});
+
+test("drops stale and undated feed items instead of making them look new", () => {
+  const xml = `<?xml version="1.0"?><rss><channel>
+    <item><title>Eski haber</title><link>https://example.com/old</link>
+      <pubDate>Mon, 01 Jul 2024 10:00:00 GMT</pubDate></item>
+    <item><title>Tarihsiz haber</title><link>https://example.com/no-date</link></item>
+  </channel></rss>`;
+
+  const articles = parseRssFeed(xml, {
+    name: "Test RSS",
+    url: "https://example.com/rss",
+    category: "Gundem"
+  }, Date.UTC(2024, 6, 22, 12));
+
+  assert.deepEqual(articles, []);
 });

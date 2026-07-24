@@ -33,11 +33,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         AdConsentManager.gatherConsent(this)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
 
         setContent {
             val darkThemeEnabled by viewModel.darkThemeEnabled.collectAsStateWithLifecycle()
@@ -93,6 +88,7 @@ class MainActivity : ComponentActivity() {
                     OnboardingScreen(
                         onComplete = { cats, topics ->
                             viewModel.completeOnboarding(cats, topics)
+                            if ((cats - "Sana Özel").isNotEmpty()) requestNotificationPermission()
                         }
                     )
                 } else if (selectedArticle != null) {
@@ -153,7 +149,10 @@ class MainActivity : ComponentActivity() {
                             3 -> NotificationsScreen(
                                 notifications = notifications,
                                 followedCategories = notificationCategories,
-                                onCategoryToggle = { cat -> viewModel.toggleCategoryNotification(cat) },
+                                onCategoryToggle = { cat ->
+                                    if (cat !in notificationCategories) requestNotificationPermission()
+                                    viewModel.toggleCategoryNotification(cat)
+                                },
                                 onNotificationClick = { articleId ->
                                     if (articleId != null) {
                                         viewModel.openArticleFromNotification(articleId)
@@ -209,6 +208,15 @@ class MainActivity : ComponentActivity() {
         val articleId = intent?.getStringExtra(EXTRA_ARTICLE_ID) ?: return
         intent.removeExtra(EXTRA_ARTICLE_ID)
         viewModel.openArticleFromNotification(articleId)
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     companion object {

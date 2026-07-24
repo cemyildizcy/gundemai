@@ -1,6 +1,6 @@
 import type { RawArticle } from "../domain/raw-article.js";
 import type { NewsCollector } from "../pipeline/contracts.js";
-import { cleanSourceText, parsePublishedAt, stableRawId } from "./shared.js";
+import { cleanSourceText, isFreshPublishedAt, parsePublishedAt, stableRawId } from "./shared.js";
 
 interface ApiArticle {
   title?: string | null;
@@ -17,13 +17,15 @@ interface ApiResponse {
   articles?: ApiArticle[] | null;
 }
 
-function mapResponse(response: ApiResponse, categoryHint: string): RawArticle[] {
+function mapResponse(response: ApiResponse, categoryHint: string, now: number): RawArticle[] {
   return (response.articles ?? []).flatMap((article): RawArticle[] => {
     const title = cleanSourceText(article.title);
     const url = article.url?.trim() ?? "";
     if (!title || title === "[Removed]" || !url.startsWith("http")) return [];
     const description = cleanSourceText(article.description) || title;
     const content = cleanSourceText(article.content) || description;
+    const publishedAt = parsePublishedAt(article.publishedAt);
+    if (!isFreshPublishedAt(publishedAt, now)) return [];
     return [{
       id: stableRawId(url),
       title,
@@ -33,17 +35,17 @@ function mapResponse(response: ApiResponse, categoryHint: string): RawArticle[] 
       imageUrl: article.image ?? article.urlToImage ?? null,
       url,
       sourceName: cleanSourceText(article.source?.name) || "Haber Kaynagi",
-      publishedAt: parsePublishedAt(article.publishedAt)
+      publishedAt
     }];
   });
 }
 
-export function mapGNewsResponse(response: ApiResponse, categoryHint: string): RawArticle[] {
-  return mapResponse(response, categoryHint);
+export function mapGNewsResponse(response: ApiResponse, categoryHint: string, now = Date.now()): RawArticle[] {
+  return mapResponse(response, categoryHint, now);
 }
 
-export function mapNewsApiResponse(response: ApiResponse, categoryHint: string): RawArticle[] {
-  return mapResponse(response, categoryHint);
+export function mapNewsApiResponse(response: ApiResponse, categoryHint: string, now = Date.now()): RawArticle[] {
+  return mapResponse(response, categoryHint, now);
 }
 
 async function fetchApi(url: URL, timeoutMs = 12_000): Promise<ApiResponse> {

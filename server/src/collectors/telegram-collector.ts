@@ -1,6 +1,6 @@
 import type { RawArticle } from "../domain/raw-article.js";
 import type { NewsCollector } from "../pipeline/contracts.js";
-import { cleanSourceText, fetchText, parsePublishedAt, stableRawId } from "./shared.js";
+import { cleanSourceText, fetchText, isFreshPublishedAt, parsePublishedAt, stableRawId } from "./shared.js";
 
 export interface TelegramSource {
   handle: string;
@@ -8,7 +8,7 @@ export interface TelegramSource {
   category: string;
 }
 
-export function parseTelegramPreview(html: string, source: TelegramSource): RawArticle[] {
+export function parseTelegramPreview(html: string, source: TelegramSource, now = Date.now()): RawArticle[] {
   const blocks = html.split(/class=["'][^"']*tgme_widget_message_wrap[^"']*["']/i).slice(1);
   return blocks.flatMap((block): RawArticle[] => {
     const post = block.match(/data-post=["']([^"']+)["']/i)?.[1];
@@ -18,6 +18,8 @@ export function parseTelegramPreview(html: string, source: TelegramSource): RawA
     if (!content) return [];
     const url = `https://t.me/${post}`;
     const datetime = block.match(/datetime=["']([^"']+)["']/i)?.[1];
+    const publishedAt = parsePublishedAt(datetime);
+    if (!isFreshPublishedAt(publishedAt, now)) return [];
     const imageUrl = block.match(/background-image:\s*url\(['"]?([^'")]+)['"]?\)/i)?.[1] ?? null;
     const title = content.length > 120 ? `${content.slice(0, 117).trim()}...` : content;
 
@@ -30,7 +32,7 @@ export function parseTelegramPreview(html: string, source: TelegramSource): RawA
       imageUrl,
       url,
       sourceName: `${source.name} (Telegram)`,
-      publishedAt: parsePublishedAt(datetime)
+      publishedAt
     }];
   }).slice(-20);
 }

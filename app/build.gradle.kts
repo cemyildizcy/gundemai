@@ -8,6 +8,8 @@ val configuredAdMobAppId = providers.gradleProperty("ADMOB_APP_ID")
   .orElse(providers.environmentVariable("ADMOB_APP_ID"))
   .orElse(sampleAdMobAppId)
   .get()
+val adsEnabled = configuredAdMobAppId != sampleAdMobAppId &&
+  configuredAdMobAppId.matches(Regex("ca-app-pub-\\d{16}~\\d{10}"))
 val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
 val releaseStorePassword = System.getenv("STORE_PASSWORD")
 val releaseKeyAlias = System.getenv("KEY_ALIAS") ?: "upload"
@@ -32,9 +34,10 @@ android {
     applicationId = "com.gundemai.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = 107
+    versionName = "1.0.7"
     manifestPlaceholders["ADMOB_APP_ID"] = configuredAdMobAppId
+    buildConfigField("boolean", "ADS_ENABLED", adsEnabled.toString())
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -87,10 +90,6 @@ tasks.withType<Test>().configureEach {
 
 val verifyReleaseConfiguration = tasks.register("verifyReleaseConfiguration") {
   doLast {
-    require(configuredAdMobAppId != sampleAdMobAppId &&
-      configuredAdMobAppId.matches(Regex("ca-app-pub-\\d{16}~\\d{10}"))) {
-      "Release build requires a real ADMOB_APP_ID Gradle property or environment variable."
-    }
     require(hasReleaseSigning) {
       "Release build requires KEYSTORE_PATH, STORE_PASSWORD and KEY_PASSWORD."
     }
@@ -122,8 +121,11 @@ val verifyReleaseConfiguration = tasks.register("verifyReleaseConfiguration") {
       "GOOGLE_WEB_CLIENT_ID must be the Firebase Web OAuth client ID."
     }
     val bannerId = env("ADMOB_BANNER_AD_UNIT_ID")
-    require(bannerId != sampleAdMobBannerId && bannerId.matches(Regex("ca-app-pub-\\d{16}/\\d{10}"))) {
-      "ADMOB_BANNER_AD_UNIT_ID must be a real banner ad unit ID, not Google's test ID."
+    require(!adsEnabled || (
+      bannerId != sampleAdMobBannerId &&
+        bannerId.matches(Regex("ca-app-pub-\\d{16}/\\d{10}"))
+      )) {
+      "When ads are enabled, ADMOB_BANNER_AD_UNIT_ID must be a real banner ad unit ID."
     }
     val privacyUrl = env("PRIVACY_POLICY_URL")
     require(privacyUrl.startsWith("https://") && !privacyUrl.contains("example.com", ignoreCase = true)) {

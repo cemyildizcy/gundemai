@@ -14,7 +14,7 @@ test("maps GNews response without trusting the requested category", () => {
       publishedAt: "2024-07-22T10:00:00Z",
       source: { name: "GNews Source" }
     }]
-  }, "Son Dakika");
+  }, "Son Dakika", Date.UTC(2024, 6, 22, 12));
 
   assert.equal(articles.length, 1);
   assert.equal(articles[0]?.categoryHint, "Son Dakika");
@@ -26,9 +26,15 @@ test("drops NewsAPI entries without a usable title or URL", () => {
     articles: [
       { title: "[Removed]", url: "https://example.com/removed", source: { name: "Removed" } },
       { title: "Gecerli haber", url: null, source: { name: "No URL" } },
-      { title: "Gecerli haber", url: "https://example.com/valid", description: "Aciklama", source: { name: "Valid" } }
+      {
+        title: "Gecerli haber",
+        url: "https://example.com/valid",
+        description: "Aciklama",
+        publishedAt: "2024-07-22T10:00:00Z",
+        source: { name: "Valid" }
+      }
     ]
-  }, "Teknoloji");
+  }, "Teknoloji", Date.UTC(2024, 6, 22, 12));
 
   assert.equal(articles.length, 1);
   assert.equal(articles[0]?.url, "https://example.com/valid");

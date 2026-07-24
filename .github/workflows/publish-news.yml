@@ -97,6 +97,14 @@ jobs:
 
       - name: Deploy the feed to Firebase Hosting
         if: steps.setup.outputs.ready == 'true'
+        shell: bash
+        run: |
+          curl --fail --silent --show-error \
+            https://gundemai.web.app/backend.json \
+            --output hosting/public/backend.json || true
+
+      - name: Publish the feed to Firebase Hosting
+        if: steps.setup.outputs.ready == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

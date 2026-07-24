@@ -20,6 +20,7 @@ export interface NewsStore {
   hasReady(id: string, analysisVersion: number): Promise<boolean>;
   hasRecentRejection(id: string, analysisVersion: number, rejectedAfter: number): Promise<boolean>;
   reserveAnalysisSlot(dayKey: string, dailyLimit: number): Promise<boolean>;
+  releaseAnalysisSlot(dayKey: string): Promise<void>;
   saveReady(article: ReadyArticle): Promise<void>;
   saveRejection(rejection: RejectedArticle): Promise<void>;
   listReady(options?: { category?: string; limit?: number }): Promise<ReadyArticle[]>;
