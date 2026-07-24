@@ -18,10 +18,12 @@
     {
       "name": "gundemai-news-pipeline",
       "binding": "NEWS_WORKFLOW",
-      "class_name": "NewsWorkflow",
-      "schedules": ["*/3 * * * *"]
+      "class_name": "NewsWorkflow"
     }
   ],
+  "triggers": {
+    "crons": ["*/3 * * * *"]
+  },
   "vars": {
     "FIREBASE_PROJECT_ID": "gundemai",
     "LEGACY_FEED_URL": "https://gundemai.web.app/v1/news.json",

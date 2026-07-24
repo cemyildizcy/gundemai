@@ -11,6 +11,12 @@ interface WorkflowParams {
   reason?: "manual" | "schedule";
 }
 
+const SCHEDULE_INTERVAL_MS = 3 * 60 * 1000;
+
+function scheduledInstanceId(scheduledTime: number): string {
+  return `schedule-${Math.floor(scheduledTime / SCHEDULE_INTERVAL_MS)}`;
+}
+
 async function finishRun(env: Env, collections: CollectionResult[]) {
   const now = Date.now();
   const analysis = await analyzePending(env, now);
@@ -102,5 +108,13 @@ export default {
       });
     }
     return Response.json({ error: "Not found" }, { status: 404 });
+  },
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(
+      env.NEWS_WORKFLOW.create({
+        id: scheduledInstanceId(controller.scheduledTime),
+        params: { reason: "schedule" }
+      })
+    );
   }
 } satisfies ExportedHandler<Env>;

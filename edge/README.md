@@ -1,9 +1,10 @@
 # GundemAI Edge
 
-GundemAI Edge is the permanent, queue-first news backend. Cloudflare starts one
-durable Workflow every three minutes. Five collection steps scan the configured
-RSS and Telegram sources; the sixth step analyzes queued articles, publishes
-them through the shared API, and sends Firebase topic notifications.
+GundemAI Edge is the permanent, queue-first news backend. A free Workers Cron
+Trigger starts one durable Workflow every three minutes. Five collection steps
+scan the configured RSS and Telegram sources; the sixth step analyzes queued
+articles, publishes them through the shared API, and sends Firebase topic
+notifications.
 
 ## Reliability model
 
@@ -20,21 +21,22 @@ them through the shared API, and sends Firebase topic notifications.
 
 ## Free-tier budget
 
-The Workflow uses exactly six durable steps per scheduled run:
+The Workflow uses exactly six durable steps per cron-started run:
 
 `480 runs/day x 6 steps = 2,880 steps/day`
 
 This remains below the Cloudflare Workers Free allowance of 3,000 Workflow
-steps per day. AI throughput is capped at two articles per run (up to 960 per
-day) so the compact multilingual model normally stays within the daily free AI
-allocation. If a provider quota is exhausted, D1 keeps the backlog and retries
-it automatically; no free service can guarantee unlimited AI usage.
+steps per day. The schedule uses a regular Workers Cron Trigger because native
+scheduled Workflows require a paid Workers plan. AI throughput is capped by
+`ANALYSES_PER_RUN`, currently three articles per run. If a provider quota is
+exhausted, D1 keeps the backlog and retries it automatically; no free service
+can guarantee unlimited AI usage.
 
 ## Deployment
 
 `.github/workflows/deploy-edge.yml` creates or reuses `gundemai-news`, applies
-D1 migrations, deploys the Worker and scheduled Workflow, installs the Firebase
-service-account secret, and starts the first run.
+D1 migrations, deploys the Worker, Workflow and free three-minute Cron Trigger,
+installs the Firebase service-account secret, and starts the first run.
 
 The `CLOUDFLARE_API_TOKEN` repository secret needs these account permissions:
 
