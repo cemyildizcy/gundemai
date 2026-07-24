@@ -88,7 +88,7 @@ fun OnboardingScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         androidx.compose.foundation.Image(
-                            painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_launcher_foreground),
+                            painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.gundemai_logo_mark),
                             contentDescription = "GündemAI Logo",
                             modifier = Modifier.size(36.dp)
                         )

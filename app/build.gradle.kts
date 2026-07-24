@@ -4,16 +4,28 @@ import java.util.Properties
 
 val sampleAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
 val sampleAdMobBannerId = "ca-app-pub-3940256099942544/9214589741"
+val localEnv = Properties().apply {
+  rootProject.file(".env").takeIf { it.isFile }?.reader(Charsets.UTF_8)?.use(::load)
+}
 val configuredAdMobAppId = providers.gradleProperty("ADMOB_APP_ID")
   .orElse(providers.environmentVariable("ADMOB_APP_ID"))
+  .orElse(localEnv.getProperty("ADMOB_APP_ID"))
   .orElse(sampleAdMobAppId)
   .get()
 val adsEnabled = configuredAdMobAppId != sampleAdMobAppId &&
   configuredAdMobAppId.matches(Regex("ca-app-pub-\\d{16}~\\d{10}"))
+val signingProperties = Properties().apply {
+  rootProject.file("keystore.properties").takeIf { it.isFile }?.reader(Charsets.UTF_8)?.use(::load)
+}
 val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
+  ?: signingProperties.getProperty("storeFile")
 val releaseStorePassword = System.getenv("STORE_PASSWORD")
-val releaseKeyAlias = System.getenv("KEY_ALIAS") ?: "upload"
+  ?: signingProperties.getProperty("storePassword")
+val releaseKeyAlias = System.getenv("KEY_ALIAS")
+  ?: signingProperties.getProperty("keyAlias")
+  ?: "upload"
 val releaseKeyPassword = System.getenv("KEY_PASSWORD")
+  ?: signingProperties.getProperty("keyPassword")
 val hasReleaseSigning = listOf(releaseKeystorePath, releaseStorePassword, releaseKeyPassword)
   .all { !it.isNullOrBlank() }
 
@@ -34,8 +46,8 @@ android {
     applicationId = "com.gundemai.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 107
-    versionName = "1.0.7"
+    versionCode = 108
+    versionName = "1.0.8"
     manifestPlaceholders["ADMOB_APP_ID"] = configuredAdMobAppId
     buildConfigField("boolean", "ADS_ENABLED", adsEnabled.toString())
 
@@ -45,7 +57,7 @@ android {
   signingConfigs {
     if (hasReleaseSigning) {
       create("release") {
-        storeFile = file(requireNotNull(releaseKeystorePath))
+        storeFile = rootProject.file(requireNotNull(releaseKeystorePath))
         storePassword = releaseStorePassword
         keyAlias = releaseKeyAlias
         keyPassword = releaseKeyPassword
@@ -93,7 +105,7 @@ val verifyReleaseConfiguration = tasks.register("verifyReleaseConfiguration") {
     require(hasReleaseSigning) {
       "Release build requires KEYSTORE_PATH, STORE_PASSWORD and KEY_PASSWORD."
     }
-    require(file(requireNotNull(releaseKeystorePath)).isFile) {
+    require(rootProject.file(requireNotNull(releaseKeystorePath)).isFile) {
       "KEYSTORE_PATH does not point to a signing key file."
     }
 
