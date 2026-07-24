@@ -61,7 +61,7 @@ jobs:
         id: database
         shell: bash
         run: |
-          database_id="$(npx wrangler d1 list --json | jq -r '.[] | select(.name == "gundemai-news") | .uuid' | head -n 1)"
+          database_id="$(npx wrangler d1 list --json | jq -r '[.[] | select(.name == "gundemai-news")][0].uuid // empty')"
           if [[ -z "$database_id" ]]; then
             create_output="$(npx wrangler d1 create gundemai-news --location eeur 2>&1)"
             printf '%s\n' "$create_output"
