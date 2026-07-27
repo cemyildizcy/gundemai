@@ -1,4 +1,5 @@
 import { AI_MODEL } from "./analyzer";
+import { sanitizeImageUrl } from "./collector";
 import { distinctSourceCount } from "./source-identity";
 import type { Env, ReadyRow, SourceRow } from "./types";
 
@@ -94,7 +95,7 @@ function toArticle(row: ReadyRow, sources: SourceRow[]): LegacyArticle {
     title: row.title,
     summary: row.summary,
     category: row.category,
-    imageUrl: row.image_url,
+    imageUrl: sanitizeImageUrl(row.image_url),
     sourceName: primary.name,
     sourceUrl: primary.url,
     sourceCount: Math.max(1, sourceCount),

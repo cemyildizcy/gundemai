@@ -1,4 +1,4 @@
-import { sourcesForShard } from "./sources";
+import { NEWS_SOURCES, sourcesForShard } from "./sources";
 import { cleanText, fold, parseDate, sha256, truncate } from "./text";
 import type { Env, NewsSource, RawNewsItem } from "./types";
 
@@ -7,6 +7,9 @@ const EVENT_MATCH_WINDOW_MS = 48 * 60 * 60 * 1000;
 const MAX_ITEMS_PER_SOURCE = 25;
 const URL_QUERY_CHUNK = 70;
 const WRITE_BATCH_SIZE = 80;
+const MAX_IMAGE_ENRICHMENTS_PER_RUN = 12;
+const MAX_IMAGE_BACKFILLS_PER_RUN = 8;
+const SOURCE_FEED_URLS = new Set(NEWS_SOURCES.map((source) => new URL(source.url).toString()));
 const EVENT_STOPWORDS = new Set([
   "acikladi", "aciklandi", "ardindan", "bir", "bu", "da", "de", "icin", "ile",
   "olarak", "olan", "son", "sonra", "tarafindan", "ve", "veya", "yeni"
@@ -44,8 +47,10 @@ function firstAttribute(block: string, expressions: RegExp[]): string {
 }
 
 function canonicalUrl(rawUrl: string, baseUrl: string): string {
+  const cleaned = cleanText(rawUrl);
+  if (!cleaned) return "";
   try {
-    const url = new URL(cleanText(rawUrl), baseUrl);
+    const url = new URL(cleaned, baseUrl);
     const parameterNames: string[] = [];
     url.searchParams.forEach((_, key) => parameterNames.push(key));
     for (const key of parameterNames) {
@@ -56,6 +61,37 @@ function canonicalUrl(rawUrl: string, baseUrl: string): string {
   } catch {
     return "";
   }
+}
+
+export function sanitizeImageUrl(rawUrl: string | null | undefined): string | null {
+  if (!rawUrl) return null;
+  try {
+    const url = new URL(rawUrl);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    url.hash = "";
+    const normalized = url.toString();
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const path = url.pathname.toLowerCase().replace(/\/+$/, "");
+    const isFeedEndpoint = SOURCE_FEED_URLS.has(normalized) ||
+      path.endsWith("/feed") ||
+      path.endsWith(".rss") ||
+      path.endsWith(".xml") ||
+      path.includes("/rss/") ||
+      host.startsWith("rss.") ||
+      (host === "t.me" && path.startsWith("/s/"));
+    return isFeedEndpoint ? null : normalized;
+  } catch {
+    return null;
+  }
+}
+
+export function extractArticleImage(html: string, articleUrl: string): string | null {
+  const rawImage = firstAttribute(html, [
+    /<meta\b[^>]*(?:property|name)=["'](?:og:image(?::url)?|twitter:image(?::src)?)["'][^>]*content=["']([^"']+)["'][^>]*>/i,
+    /<meta\b[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image(?::url)?|twitter:image(?::src)?)["'][^>]*>/i,
+    /<link\b[^>]*rel=["']image_src["'][^>]*href=["']([^"']+)["'][^>]*>/i
+  ]);
+  return sanitizeImageUrl(canonicalUrl(rawImage, articleUrl));
 }
 
 export function parseRss(xml: string, source: NewsSource, now = Date.now()): RawNewsItem[] {
@@ -75,11 +111,11 @@ export function parseRss(xml: string, source: NewsSource, now = Date.now()): Raw
       const description = truncate(cleanText(descriptionHtml) || title, 4_000);
       const dateText = cleanText(firstTag(block, ["pubDate", "published", "updated", "dc:date"]));
       const publishedAt = parseDate(dateText, now);
-      const imageUrl = canonicalUrl(firstAttribute(block, [
+      const imageUrl = sanitizeImageUrl(canonicalUrl(firstAttribute(block, [
         /<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*>/i,
         /<media:(?:content|thumbnail)\b[^>]*\burl=["']([^"']+)["'][^>]*>/i,
         /<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/i
-      ]), source.url) || null;
+      ]), source.url));
 
       return [{
         title: truncate(title, 300),
@@ -107,10 +143,10 @@ export function parseTelegram(html: string, source: NewsSource, now = Date.now()
     const description = truncate(cleanText(textHtml), 4_000);
     if (!description) return [];
     const publishedAt = parseDate(block.match(/datetime=["']([^"']+)["']/i)?.[1] ?? "", now);
-    const imageUrl = canonicalUrl(
+    const imageUrl = sanitizeImageUrl(canonicalUrl(
       block.match(/background-image:\s*url\(['"]?([^'")]+)['"]?\)/i)?.[1] ?? "",
       source.url
-    ) || null;
+    ));
     return [{
       title: truncate(description, 180),
       description,
@@ -210,10 +246,54 @@ async function existingUrls(db: D1Database, urls: string[]): Promise<Set<string>
   return existing;
 }
 
+async function fetchArticleImage(item: RawNewsItem): Promise<string | null> {
+  if (item.imageUrl) return sanitizeImageUrl(item.imageUrl);
+  try {
+    const response = await fetch(item.url, {
+      headers: {
+        Accept: "text/html,application/xhtml+xml;q=0.9",
+        "User-Agent": "GundemAI-NewsBot/1.0 (+https://gundemai.web.app)"
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(6_000)
+    });
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().includes("text/html")) return null;
+    const contentLength = Number.parseInt(response.headers.get("content-length") ?? "0", 10);
+    if (Number.isFinite(contentLength) && contentLength > 2_000_000) return null;
+    return extractArticleImage(await response.text(), response.url || item.url);
+  } catch {
+    return null;
+  }
+}
+
+async function enrichMissingImages(
+  items: RawNewsItem[],
+  limit = MAX_IMAGE_ENRICHMENTS_PER_RUN
+): Promise<RawNewsItem[]> {
+  const targets = items.filter((item) => !sanitizeImageUrl(item.imageUrl))
+    .slice(0, limit);
+  if (targets.length === 0) return items;
+  const resolved = await Promise.all(targets.map(async (item) => [
+    item.url,
+    await fetchArticleImage(item)
+  ] as const));
+  const images = new Map(resolved);
+  return items.map((item) => ({
+    ...item,
+    imageUrl: sanitizeImageUrl(item.imageUrl) ?? images.get(item.url) ?? null
+  }));
+}
+
 async function persistItems(env: Env, items: RawNewsItem[], now: number): Promise<number> {
   const unique = [...new Map(items.map((item) => [item.url, item])).values()];
   const knownUrls = await existingUrls(env.DB, unique.map((item) => item.url));
-  const unseen = unique.filter((item) => !knownUrls.has(item.url));
+  const unseen = await enrichMissingImages(unique.filter((item) => !knownUrls.has(item.url)));
+  const backfilled = await enrichMissingImages(
+    unique.filter((item) => knownUrls.has(item.url) && !sanitizeImageUrl(item.imageUrl)),
+    MAX_IMAGE_BACKFILLS_PER_RUN
+  );
   const recent = await env.DB.prepare(`
     SELECT id, event_key, raw_title, published_at
     FROM news_items
@@ -246,6 +326,28 @@ async function persistItems(env: Env, items: RawNewsItem[], now: number): Promis
   }
 
   const statements: D1PreparedStatement[] = [];
+  for (const item of backfilled.filter((candidate) => candidate.imageUrl)) {
+    statements.push(env.DB.prepare(`
+      UPDATE news_items
+      SET image_url = ?
+      WHERE id = (
+        SELECT article_id
+        FROM news_sources
+        WHERE url = ?
+        LIMIT 1
+      )
+      AND (
+        image_url IS NULL OR
+        TRIM(image_url) = '' OR
+        LOWER(image_url) LIKE '%/feed%' OR
+        LOWER(image_url) LIKE '%/rss/%' OR
+        LOWER(image_url) LIKE '%.rss%' OR
+        LOWER(image_url) LIKE '%.xml%' OR
+        LOWER(image_url) LIKE 'https://rss.%' OR
+        LOWER(image_url) LIKE 'https://t.me/s/%'
+      )
+    `).bind(item.imageUrl, item.url));
+  }
   for (const item of prepared) {
     statements.push(env.DB.prepare(`
       INSERT INTO news_items (

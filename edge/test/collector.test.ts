@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { categoryFor } from "../src/categories";
-import { isSameNewsEvent, parseRss, parseTelegram } from "../src/collector";
+import {
+  extractArticleImage,
+  isSameNewsEvent,
+  parseRss,
+  parseTelegram,
+  sanitizeImageUrl
+} from "../src/collector";
 import type { NewsSource } from "../src/types";
 
 const NOW = Date.UTC(2026, 6, 23, 9, 0, 0);
@@ -61,6 +67,48 @@ test("Telegram preview posts retain their real post URL and timestamp", () => {
   assert.equal(result.length, 1);
   assert.equal(result[0]?.url, "https://t.me/test/42");
   assert.equal(result[0]?.description, "Önemli gelişme açıklandı.");
+  assert.equal(result[0]?.imageUrl, null);
+});
+
+test("an RSS item without media does not reuse the feed URL as an image", () => {
+  const source: NewsSource = {
+    kind: "rss",
+    name: "Test",
+    url: "https://example.com/feed.xml",
+    category: "Teknoloji"
+  };
+  const rss = `<rss><channel><item>
+    <title>Görselsiz yeni haber</title>
+    <link>https://example.com/news/without-image</link>
+    <pubDate>Thu, 23 Jul 2026 08:30:00 GMT</pubDate>
+  </item></channel></rss>`;
+
+  const result = parseRss(rss, source, NOW);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.imageUrl, null);
+});
+
+test("article metadata supplies an image when the feed has none", () => {
+  const html = `<html><head>
+    <meta property="og:image" content="/media/story-cover.jpg?size=large&amp;quality=90">
+  </head></html>`;
+
+  assert.equal(
+    extractArticleImage(html, "https://example.com/news/story"),
+    "https://example.com/media/story-cover.jpg?size=large&quality=90"
+  );
+});
+
+test("feed and Telegram listing endpoints are never accepted as images", () => {
+  assert.equal(sanitizeImageUrl("https://example.com/feed"), null);
+  assert.equal(sanitizeImageUrl("https://rss.example.com/latest"), null);
+  assert.equal(sanitizeImageUrl("https://example.com/news.xml"), null);
+  assert.equal(sanitizeImageUrl("https://t.me/s/example"), null);
+  assert.equal(
+    sanitizeImageUrl("https://cdn.example.com/images/story.jpg"),
+    "https://cdn.example.com/images/story.jpg"
+  );
 });
 
 test("deterministic category overrides a broad source hint", () => {
