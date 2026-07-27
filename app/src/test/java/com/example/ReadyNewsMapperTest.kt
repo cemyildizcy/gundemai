@@ -74,4 +74,36 @@ class ReadyNewsMapperTest {
             assertEquals(canonical, com.example.data.remote.ServerCategory.toCanonicalName(display))
         }
     }
+
+    @Test
+    fun `server source count is not inflated by duplicate publisher URLs`() {
+        val dto = ReadyNewsDto(
+            id = "event-single-publisher",
+            status = "READY",
+            title = "Aynı yayıncıdan güncellenen haber",
+            summary = "Aynı yayıncının iki farklı bağlantısı tek bağımsız kaynak olarak değerlendirilir.",
+            category = "Turkiye",
+            sourceName = "NTV Gündem",
+            sourceUrl = "https://www.ntv.com.tr/turkiye/haber-1",
+            sourceCount = 1,
+            sources = listOf(
+                ReadySourceDto("NTV Gündem", "https://www.ntv.com.tr/turkiye/haber-1", 1_721_630_000_000),
+                ReadySourceDto("NTV Gündem", "https://www.ntv.com.tr/turkiye/haber-2", 1_721_630_060_000)
+            ),
+            publishedAt = 1_721_630_000_000,
+            readyAt = 1_721_630_120_000,
+            whatHappened = "Yayıncı aynı olayı iki farklı bağlantıda aktardı.",
+            whyImportant = "Bağımsız kaynak sayısı doğrulama etiketinin güvenilirliğini doğrudan etkiler.",
+            missingInformation = "İkinci bağımsız bir yayıncı bulunmuyor.",
+            verificationStatus = "SINGLE_SOURCE_REPORT",
+            confidenceScore = 70,
+            possibleImpacts = emptyList(),
+            unverifiedClaims = emptyList(),
+            contradictions = emptyList(),
+            verifiedFacts = listOf("İki bağlantı da aynı yayıncıya ait."),
+            analysisVersion = 3
+        )
+
+        assertEquals(1, dto.toEntity().sourceCount)
+    }
 }

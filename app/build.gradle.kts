@@ -46,8 +46,8 @@ android {
     applicationId = "com.gundemai.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 108
-    versionName = "1.0.8"
+    versionCode = 109
+    versionName = "1.0.9"
     manifestPlaceholders["ADMOB_APP_ID"] = configuredAdMobAppId
     buildConfigField("boolean", "ADS_ENABLED", adsEnabled.toString())
 
