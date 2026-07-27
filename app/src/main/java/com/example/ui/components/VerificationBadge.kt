@@ -40,10 +40,11 @@ fun VerificationBadge(
     val icon = when (status) {
         VerificationStatus.OFFICIAL_CONFIRMED,
         VerificationStatus.MULTI_SOURCE_CONFIRMED -> Icons.Default.CheckCircle
-        VerificationStatus.SINGLE_SOURCE_REPORT,
         VerificationStatus.UNVERIFIED_CLAIM,
         VerificationStatus.SOURCES_CONFLICT -> Icons.Default.Warning
-        else -> Icons.Default.Info
+        VerificationStatus.SINGLE_SOURCE_REPORT,
+        VerificationStatus.DEVELOPING_STORY,
+        VerificationStatus.INSUFFICIENT_INFORMATION -> Icons.Default.Info
     }
 
     Row(

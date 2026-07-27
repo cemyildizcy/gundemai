@@ -50,8 +50,6 @@ class PlayBillingManager(
     val availableProducts: StateFlow<List<BillingSubscriptionProduct>> = _availableProducts
 
     private var billingClient: BillingClient? = null
-    private var retryCount = 0
-
     companion object {
         const val SKU_PRO_MONTHLY = "gundemai_pro_monthly"
         const val SKU_PRO_YEARLY = "gundemai_pro_yearly"
@@ -66,7 +64,12 @@ class PlayBillingManager(
             _connectionState.value = BillingConnectionState.Connecting
             billingClient = BillingClient.newBuilder(context)
                 .setListener(this)
-                .enablePendingPurchases()
+                .enablePendingPurchases(
+                    PendingPurchasesParams.newBuilder()
+                        .enableOneTimeProducts()
+                        .build()
+                )
+                .enableAutoServiceReconnection()
                 .build()
 
             startConnection()
@@ -84,7 +87,6 @@ class PlayBillingManager(
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     _connectionState.value = BillingConnectionState.Connected
-                    retryCount = 0
                     querySubscriptions()
                     queryExistingPurchases()
                 } else {
@@ -96,12 +98,6 @@ class PlayBillingManager(
 
             override fun onBillingServiceDisconnected() {
                 _connectionState.value = BillingConnectionState.Disconnected
-                if (retryCount < 3) {
-                    retryCount++
-                    startConnection()
-                } else {
-                    _availableProducts.value = emptyList()
-                }
             }
         }) ?: run {
             _availableProducts.value = emptyList()
@@ -124,7 +120,8 @@ class PlayBillingManager(
             .setProductList(productList)
             .build()
 
-        billingClient?.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+        billingClient?.queryProductDetailsAsync(params) { billingResult, queryResult ->
+            val productDetailsList = queryResult.productDetailsList
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
                 val mapped = productDetailsList.map { pd ->
                     val offer = pd.subscriptionOfferDetails?.firstOrNull()

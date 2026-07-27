@@ -15,7 +15,7 @@ enum class VerificationStatus(val label: String, val badgeColor: Color) {
     companion object {
         fun fromString(status: String?): VerificationStatus {
             return entries.firstOrNull { it.name.equals(status, ignoreCase = true) }
-                ?: MULTI_SOURCE_CONFIRMED
+                ?: INSUFFICIENT_INFORMATION
         }
     }
 }

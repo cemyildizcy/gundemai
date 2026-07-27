@@ -9,6 +9,7 @@ import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
+import java.net.URI
 
 interface ReadyNewsApiService {
     @GET("v1/news")
@@ -125,7 +126,7 @@ fun ReadyNewsDto.toEntity(isBookmarked: Boolean = false): NewsArticle {
         title = title.trim(),
         summary = summary.trim(),
         category = ServerCategory.toDisplayName(category),
-        imageUrl = imageUrl,
+        imageUrl = sanitizeServerImageUrl(imageUrl),
         sourceName = sourceName,
         sourceUrl = sourceUrl,
         publishedAt = publishedAt,
@@ -146,4 +147,22 @@ fun ReadyNewsDto.toEntity(isBookmarked: Boolean = false): NewsArticle {
         isAiAnalyzed = true,
         topicTagsJson = stringListAdapter.toJson(listOf(ServerCategory.toDisplayName(category)))
     )
+}
+
+internal fun sanitizeServerImageUrl(rawUrl: String?): String? {
+    val value = rawUrl?.trim().takeUnless { it.isNullOrEmpty() } ?: return null
+    val uri = runCatching { URI(value) }.getOrNull() ?: return null
+    if (uri.scheme !in setOf("http", "https") || uri.host.isNullOrBlank()) return null
+
+    val host = uri.host.lowercase().removePrefix("www.")
+    val path = uri.path.orEmpty().lowercase().trimEnd('/')
+    val isFeedEndpoint =
+        path.endsWith("/feed") ||
+            path.endsWith(".rss") ||
+            path.endsWith(".xml") ||
+            path.contains("/rss/") ||
+            host.startsWith("rss.") ||
+            (host == "t.me" && path.startsWith("/s/"))
+
+    return value.takeUnless { isFeedEndpoint }
 }

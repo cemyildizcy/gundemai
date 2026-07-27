@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import com.example.data.ads.AdConsentManager
 import com.example.ui.components.GundemBottomBar
 import com.example.ui.components.GundemTopBar
+import com.example.ui.presentation.shouldShowFeedControls
 import com.example.ui.screens.*
 import com.example.ui.theme.GundemAITheme
 import com.example.ui.viewmodel.NewsViewModel
@@ -102,13 +103,15 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         containerColor = MaterialTheme.colorScheme.background,
                         topBar = {
-                            GundemTopBar(
-                                selectedCategory = selectedCategory,
-                                onCategorySelected = { viewModel.selectCategory(it) },
-                                searchQuery = searchQuery,
-                                onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                                onRefreshClick = { viewModel.refreshNews(forceRefresh = true) }
-                            )
+                            if (shouldShowFeedControls(selectedTab)) {
+                                GundemTopBar(
+                                    selectedCategory = selectedCategory,
+                                    onCategorySelected = { viewModel.selectCategory(it) },
+                                    searchQuery = searchQuery,
+                                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                                    onRefreshClick = { viewModel.refreshNews(forceRefresh = true) }
+                                )
+                            }
                         },
                         bottomBar = {
                             GundemBottomBar(

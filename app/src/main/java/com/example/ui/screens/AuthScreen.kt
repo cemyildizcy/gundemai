@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -34,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.BuildConfig
 import com.example.data.auth.AuthResult
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.example.ui.auth.buildGoogleButtonOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
@@ -173,10 +174,9 @@ fun AuthScreen(
                                 scope.launch {
                                     isLoading = true
                                     try {
-                                        val option = GetGoogleIdOption.Builder()
-                                            .setFilterByAuthorizedAccounts(false)
-                                            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                                            .build()
+                                        val option = buildGoogleButtonOption(
+                                            BuildConfig.GOOGLE_WEB_CLIENT_ID
+                                        )
                                         val request = GetCredentialRequest.Builder()
                                             .addCredentialOption(option)
                                             .build()
@@ -197,8 +197,10 @@ fun AuthScreen(
                                             }
                                             is AuthResult.Error -> errorMessage = result.message
                                         }
+                                    } catch (_: GetCredentialCancellationException) {
+                                        errorMessage = null
                                     } catch (_: NoCredentialException) {
-                                        errorMessage = "Kullanılabilir bir Google hesabı bulunamadı. Cihaza hesap ekleyip tekrar deneyin."
+                                        errorMessage = "Google hesabı seçimi açılamadı. Google Play Hizmetlerini güncelleyip tekrar deneyin."
                                     } catch (_: Exception) {
                                         errorMessage = "Google girişi tamamlanamadı veya iptal edildi."
                                     } finally {

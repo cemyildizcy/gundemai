@@ -7,6 +7,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -105,5 +106,37 @@ class ReadyNewsMapperTest {
         )
 
         assertEquals(1, dto.toEntity().sourceCount)
+    }
+
+    @Test
+    fun `feed endpoint is never treated as an article image`() {
+        val dto = ReadyNewsDto(
+            id = "event-invalid-image",
+            status = "READY",
+            title = "Görseli olmayan haber",
+            summary = "Kaynak akış adresi görsel olarak gösterilmemelidir.",
+            category = "Teknoloji",
+            imageUrl = "https://shiftdelete.net/feed",
+            sourceName = "ShiftDelete.Net",
+            sourceUrl = "https://shiftdelete.net/haber",
+            sourceCount = 1,
+            sources = listOf(
+                ReadySourceDto("ShiftDelete.Net", "https://shiftdelete.net/haber", 1_721_630_000_000)
+            ),
+            publishedAt = 1_721_630_000_000,
+            readyAt = 1_721_630_120_000,
+            whatHappened = "Yeni bir haber yayımlandı.",
+            whyImportant = "Boş görsel alanları kullanıcı deneyimini etkiler.",
+            missingInformation = "",
+            verificationStatus = "SINGLE_SOURCE_REPORT",
+            confidenceScore = 70,
+            possibleImpacts = emptyList(),
+            unverifiedClaims = emptyList(),
+            contradictions = emptyList(),
+            verifiedFacts = emptyList(),
+            analysisVersion = 3
+        )
+
+        assertNull(dto.toEntity().imageUrl)
     }
 }

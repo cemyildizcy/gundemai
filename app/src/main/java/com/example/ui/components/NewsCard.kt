@@ -36,14 +36,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.example.data.model.NewsArticle
+import com.example.ui.presentation.shouldShowVerificationBadgeInFeed
 import com.example.util.DateUtils
 
 @Composable
@@ -66,32 +65,30 @@ fun NewsCard(
             .testTag("news_card_${article.id}")
     ) {
         Column {
-            if (!article.imageUrl.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                ArticleImage(
+                    imageUrl = article.imageUrl,
+                    title = article.title,
+                    category = article.category,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Surface(
+                    color = Color.Black.copy(alpha = 0.76f),
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(5.dp),
+                    modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
                 ) {
-                    AsyncImage(
-                        model = article.imageUrl,
-                        contentDescription = article.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                    Text(
+                        text = article.category.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                     )
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.76f),
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(5.dp),
-                        modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
-                    ) {
-                        Text(
-                            text = article.category.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                        )
-                    }
                 }
             }
 
@@ -104,20 +101,6 @@ fun NewsCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                    if (article.imageUrl.isNullOrBlank()) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = RoundedCornerShape(5.dp)
-                        ) {
-                            Text(
-                                text = article.category.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
                     Text(
                         text = article.sourceName.ifBlank { "GündemAI haber akışı" },
                         style = MaterialTheme.typography.labelMedium,
@@ -203,10 +186,12 @@ fun NewsCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        VerificationBadge(
-                            statusString = article.verificationStatus,
-                            confidenceScore = article.confidenceScore
-                        )
+                        if (shouldShowVerificationBadgeInFeed(article.verificationStatus)) {
+                            VerificationBadge(
+                                statusString = article.verificationStatus,
+                                confidenceScore = article.confidenceScore
+                            )
+                        }
                     }
 
                     Row {

@@ -23,16 +23,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.data.model.NewsArticle
 import com.example.ui.components.AdMobTestAdaptiveBanner
+import com.example.ui.components.ArticleImage
 import com.example.util.DateUtils
 import com.example.ui.components.SourceTimelineView
 import com.example.ui.components.VerificationBadge
@@ -188,34 +187,32 @@ fun DetailScreen(
         ) {
             // --- 1. HERO MEDIA & HEADLINE GROUP ---
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!article.imageUrl.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(210.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                ) {
+                    ArticleImage(
+                        imageUrl = article.imageUrl,
+                        title = article.title,
+                        category = article.category,
+                        modifier = Modifier.fillMaxSize()
+                    )
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(210.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
-                    ) {
-                        AsyncImage(
-                            model = article.imageUrl,
-                            contentDescription = article.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Black.copy(alpha = 0.05f),
-                                            Color.Transparent,
-                                            Color.Black.copy(alpha = 0.4f)
-                                        )
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.05f),
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.4f)
                                     )
                                 )
-                        )
-                    }
+                            )
+                    )
                 }
 
                 Text(
