@@ -7,8 +7,7 @@ const EVENT_MATCH_WINDOW_MS = 48 * 60 * 60 * 1000;
 const MAX_ITEMS_PER_SOURCE = 25;
 const URL_QUERY_CHUNK = 70;
 const WRITE_BATCH_SIZE = 80;
-const MAX_IMAGE_ENRICHMENTS_PER_RUN = 12;
-const MAX_IMAGE_BACKFILLS_PER_RUN = 8;
+const MAX_IMAGE_FETCHES_PER_SHARD = 1;
 const SOURCE_FEED_URLS = new Set(NEWS_SOURCES.map((source) => new URL(source.url).toString()));
 const EVENT_STOPWORDS = new Set([
   "acikladi", "aciklandi", "ardindan", "bir", "bu", "da", "de", "icin", "ile",
@@ -270,7 +269,7 @@ async function fetchArticleImage(item: RawNewsItem): Promise<string | null> {
 
 async function enrichMissingImages(
   items: RawNewsItem[],
-  limit = MAX_IMAGE_ENRICHMENTS_PER_RUN
+  limit: number
 ): Promise<RawNewsItem[]> {
   const targets = items.filter((item) => !sanitizeImageUrl(item.imageUrl))
     .slice(0, limit);
@@ -289,11 +288,19 @@ async function enrichMissingImages(
 async function persistItems(env: Env, items: RawNewsItem[], now: number): Promise<number> {
   const unique = [...new Map(items.map((item) => [item.url, item])).values()];
   const knownUrls = await existingUrls(env.DB, unique.map((item) => item.url));
-  const unseen = await enrichMissingImages(unique.filter((item) => !knownUrls.has(item.url)));
-  const backfilled = await enrichMissingImages(
-    unique.filter((item) => knownUrls.has(item.url) && !sanitizeImageUrl(item.imageUrl)),
-    MAX_IMAGE_BACKFILLS_PER_RUN
+  const unseenRaw = unique.filter((item) => !knownUrls.has(item.url));
+  const knownMissing = unique.filter(
+    (item) => knownUrls.has(item.url) && !sanitizeImageUrl(item.imageUrl)
   );
+  const enriched = await enrichMissingImages(
+    [...unseenRaw, ...knownMissing],
+    MAX_IMAGE_FETCHES_PER_SHARD
+  );
+  const enrichedByUrl = new Map(enriched.map((item) => [item.url, item]));
+  const unseen = unseenRaw.map((item) => enrichedByUrl.get(item.url) ?? item);
+  const backfilled = knownMissing
+    .map((item) => enrichedByUrl.get(item.url) ?? item)
+    .filter((item) => item.imageUrl);
   const recent = await env.DB.prepare(`
     SELECT id, event_key, raw_title, published_at
     FROM news_items
