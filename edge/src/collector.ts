@@ -160,12 +160,36 @@ function eventTokens(title: string): string[] {
   )];
 }
 
+function numberTokens(title: string): Set<string> {
+  return new Set(
+    fold(title)
+      .split(" ")
+      .flatMap((token) => token.match(/^\d+/)?.[0] ?? [])
+  );
+}
+
+function numbersAreCompatible(leftTitle: string, rightTitle: string): boolean {
+  const left = numberTokens(leftTitle);
+  const right = numberTokens(rightTitle);
+  if (left.size === 0 || right.size === 0) return true;
+
+  const smaller = left.size <= right.size ? left : right;
+  const larger = smaller === left ? right : left;
+  return [...smaller].every((token) => larger.has(token));
+}
+
 export function isSameNewsEvent(leftTitle: string, rightTitle: string): boolean {
+  if (!numbersAreCompatible(leftTitle, rightTitle)) return false;
+
   const left = new Set(eventTokens(leftTitle));
   const right = new Set(eventTokens(rightTitle));
   const intersection = [...left].filter((token) => right.has(token)).length;
   const union = new Set([...left, ...right]).size;
-  return intersection >= 4 || (union > 0 && intersection / union >= 0.5);
+  const smallerSize = Math.min(left.size, right.size);
+  return intersection >= 4 &&
+    smallerSize > 0 &&
+    intersection / smallerSize >= 0.5 &&
+    intersection / union >= 0.35;
 }
 
 function chunks<T>(values: T[], size: number): T[][] {

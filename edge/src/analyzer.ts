@@ -1,4 +1,5 @@
 import { categoryFor } from "./categories";
+import { distinctSourceCount } from "./source-identity";
 import { cleanText, fold, jsonStringArray, truncate } from "./text";
 import type { Env, QueueRow, SourceRow } from "./types";
 
@@ -208,8 +209,9 @@ async function markReady(
   now: number
 ): Promise<void> {
   const category = categoryFor(row.raw_title, row.raw_description, row.category_hint);
-  const verificationStatus = sources.length >= 2 ? "MULTI_SOURCE_CONFIRMED" : "SINGLE_SOURCE_REPORT";
-  const confidenceScore = sources.length >= 2 ? 82 : 70;
+  const sourceCount = distinctSourceCount(sources);
+  const verificationStatus = sourceCount >= 2 ? "MULTI_SOURCE_CONFIRMED" : "SINGLE_SOURCE_REPORT";
+  const confidenceScore = sourceCount >= 2 ? 82 : 70;
   await env.DB.prepare(`
     UPDATE news_items SET
       status = 'READY',

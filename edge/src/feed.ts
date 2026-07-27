@@ -1,4 +1,5 @@
 import { AI_MODEL } from "./analyzer";
+import { distinctSourceCount } from "./source-identity";
 import type { Env, ReadyRow, SourceRow } from "./types";
 
 interface LegacyArticle {
@@ -73,13 +74,14 @@ function toArticle(row: ReadyRow, sources: SourceRow[]): LegacyArticle {
       publishedAt: source.published_at,
       headline: source.headline
     }));
+  const sourceCount = distinctSourceCount(articleSources);
   const primary = articleSources[0] ?? {
     name: "GundemAI",
     url: "https://gundemai.web.app",
     publishedAt: row.published_at,
     headline: row.title
   };
-  const verificationStatus = articleSources.length >= 2 &&
+  const verificationStatus = sourceCount >= 2 &&
     row.verification_status === "SINGLE_SOURCE_REPORT"
     ? "MULTI_SOURCE_CONFIRMED"
     : row.verification_status;
@@ -95,7 +97,7 @@ function toArticle(row: ReadyRow, sources: SourceRow[]): LegacyArticle {
     imageUrl: row.image_url,
     sourceName: primary.name,
     sourceUrl: primary.url,
-    sourceCount: Math.max(1, articleSources.length),
+    sourceCount: Math.max(1, sourceCount),
     sources: articleSources.length > 0 ? articleSources : [primary],
     publishedAt: row.published_at,
     readyAt: row.ready_at,

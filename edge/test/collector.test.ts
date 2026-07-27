@@ -86,3 +86,43 @@ test("similar headlines from separate sources represent one event", () => {
     false
   );
 });
+
+test("unrelated South Korea business stories stay in separate events", () => {
+  assert.equal(
+    isSameNewsEvent(
+      "Güney Kore’nin En Büyük Ticaret Şirketi Duyurdu: Küresel Ödemeler İçin Bu Altcoin’i Seçtiler",
+      "Güney Kore’nin En Büyük Bankası JPMorgan ile Bir İlke İmza Atıyor: 10 Ülke Listede"
+    ),
+    false
+  );
+});
+
+test("numbered entries in a recurring series stay in separate events", () => {
+  assert.equal(
+    isSameNewsEvent(
+      "Who am I? Guess Premier League star No 5",
+      "Who am I? Guess Premier League star No 6"
+    ),
+    false
+  );
+});
+
+test("daily market bulletins for different dates stay in separate events", () => {
+  assert.equal(
+    isSameNewsEvent(
+      "Bitcoin ve Altcoinler Ne Durumda: Piyasalara Genel Bakış (25 Temmuz)",
+      "Bitcoin ve Altcoinler Ne Durumda: Piyasalara Genel Bakış (26 Temmuz)"
+    ),
+    false
+  );
+});
+
+test("unrelated first-half financial stories stay in separate events", () => {
+  assert.equal(
+    isSameNewsEvent(
+      "TKYB 2026'nın ilk yarısında 5 milyar liranın üzerinde kar elde etti",
+      "Türkiye, 2026'nın ocak-haziran döneminde 91 ülkeye 18 bin 301 ton kurutulmuş domates ihraç etti. Bu ihracattan ise toplam 60 milyon 989 bin dolar gelir elde edildi."
+    ),
+    false
+  );
+});
