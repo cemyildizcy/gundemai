@@ -45,7 +45,10 @@ private fun AdMobBanner(modifier: Modifier) {
             .height(50.dp),
         factory = { context ->
             AdView(context).apply {
-                adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID
+                adUnitId = resolveBannerAdUnitId(
+                    isDebug = BuildConfig.DEBUG,
+                    configuredAdUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID,
+                )
                 setAdSize(AdSize.BANNER)
                 loadAd(AdRequest.Builder().build())
                 adViewState.value = this
