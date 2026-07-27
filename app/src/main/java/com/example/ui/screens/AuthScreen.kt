@@ -114,10 +114,10 @@ fun AuthScreen(
                         text = "GündemAI",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Black,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Yapay Zekâ Destekli Tarafsız Haber & Analiz",
+                        text = "Yapay Zekâ Destekli Haber ve Analiz",
                         fontSize = 14.sp,
                         color = subTextColor
                     )
@@ -227,7 +227,7 @@ fun AuthScreen(
                                 )
                                 Text(
                                     text = "Google ile Giriş Yap",
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = Color(0xFF202124),
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -472,7 +472,7 @@ fun AuthScreen(
                     }
 
                     Text(
-                        text = "Misafir modunda reklamlı sürüm kullanılır. Dilediğiniz zaman Profil sekmesinden e-posta veya Google ile giriş yapıp reklamsız Pro'ya geçebilirsiniz.",
+                        text = "Misafir modunda banner reklamları gösterilir. Dilediğiniz zaman Profil sekmesinden giriş yapıp banner reklamsız Pro'ya geçebilirsiniz.",
                         fontSize = 11.sp,
                         color = subTextColor,
                         modifier = Modifier.padding(horizontal = 16.dp),

@@ -7,6 +7,11 @@ import com.example.data.model.*
 import com.example.data.repository.NewsRepository
 import com.example.data.repository.UserPreferencesRepository
 import com.example.notification.NotificationTopicManager
+import com.example.ui.presentation.normalizeSubmittedSearchQuery
+import com.example.ui.presentation.presentArticles
+import com.example.ui.presentation.resolveOpenedSearch
+import com.example.ui.presentation.sanitizeInterestCategories
+import com.example.ui.presentation.sanitizeNotificationCategories
 import com.example.worker.NewsBackgroundWorker
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -211,7 +216,7 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
             if (launched) {
                 onResult(true, "Google Play satın alma ekranı başlatıldı.")
             } else {
-                onResult(false, "Google Play satın alma ekranı açılamadı. Ürün ve test hesabı yapılandırmasını kontrol edin.")
+                onResult(false, "Google Play satın alma ekranı şu anda açılamıyor. Lütfen daha sonra tekrar deneyin.")
             }
         }
     }
@@ -241,37 +246,7 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
         followedCategories,
         followedTopics
     ) { articles, category, query, selectedCategories, selectedTopics ->
-        val searched = query.trim().takeIf { it.isNotEmpty() }?.let { needle ->
-            articles.filter { article ->
-                article.title.contains(needle, ignoreCase = true) ||
-                    article.summary.contains(needle, ignoreCase = true) ||
-                    article.whatHappened.contains(needle, ignoreCase = true)
-            }
-        } ?: articles
-
-        if (query.isNotBlank()) {
-            searched
-        } else if (category != "Sana Özel") {
-            searched.filter { it.category == category }
-        } else {
-            val categorySelection = selectedCategories - "Sana Özel"
-            val personalized = if (categorySelection.isEmpty()) {
-                searched
-            } else {
-                searched.filter { it.category in categorySelection }
-            }
-            val topicNames = FollowedTopic.POPULAR_TOPICS
-                .filter { it.id in selectedTopics }
-                .map { it.name }
-            personalized.sortedWith(
-                compareByDescending<NewsArticle> { article ->
-                    topicNames.any { topic ->
-                        article.title.contains(topic, ignoreCase = true) ||
-                            article.summary.contains(topic, ignoreCase = true)
-                    }
-                }.thenByDescending { it.publishedAt }.thenBy { it.id }
-            )
-        }
+        presentArticles(articles, category, query, selectedCategories, selectedTopics)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Bookmarks Flow
@@ -306,16 +281,29 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectCategory(category: String) {
         _selectedCategory.value = category
-        refreshNews()
     }
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
-        if (query.isNotBlank()) {
+    }
+
+    fun submitSearchQuery(query: String = _searchQuery.value) {
+        val submittedQuery = normalizeSubmittedSearchQuery(query) ?: return
+        _searchQuery.value = submittedQuery
+        viewModelScope.launch {
+            repository.addSearchQuery(submittedQuery)
+        }
+    }
+
+    fun openSearch(query: String) {
+        val openedSearch = resolveOpenedSearch(query)
+        _searchQuery.value = openedSearch.activeQuery
+        openedSearch.historyQuery?.let { historyQuery ->
             viewModelScope.launch {
-                repository.addSearchQuery(query)
+                repository.addSearchQuery(historyQuery)
             }
         }
+        _selectedTab.value = 0
     }
 
     fun selectArticle(id: String?) {
@@ -354,12 +342,14 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleCategoryNotification(categoryName: String) {
+        val selectableCategory =
+            sanitizeNotificationCategories(setOf(categoryName)).singleOrNull() ?: return
         viewModelScope.launch {
-            val current = notificationCategories.value.toMutableSet()
-            if (current.contains(categoryName)) {
-                current.remove(categoryName)
+            val current = sanitizeNotificationCategories(notificationCategories.value).toMutableSet()
+            if (current.contains(selectableCategory)) {
+                current.remove(selectableCategory)
             } else {
-                current.add(categoryName)
+                current.add(selectableCategory)
             }
             userPrefs.updateNotificationCategories(current)
         }
@@ -387,10 +377,12 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun completeOnboarding(selectedCats: Set<String>, selectedTopics: Set<String>) {
+        val interestCategories = sanitizeInterestCategories(selectedCats)
+        val notificationCategories = sanitizeNotificationCategories(selectedCats)
         viewModelScope.launch {
-            userPrefs.updateFollowedCategories(selectedCats)
+            userPrefs.updateFollowedCategories(interestCategories)
             userPrefs.updateFollowedTopics(selectedTopics)
-            userPrefs.updateNotificationCategories(selectedCats - "Sana Özel")
+            userPrefs.updateNotificationCategories(notificationCategories)
             userPrefs.setOnboardingCompleted(true)
         }
     }

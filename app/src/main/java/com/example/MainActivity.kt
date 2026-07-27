@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +21,8 @@ import com.example.data.ads.AdConsentManager
 import com.example.ui.components.GundemBottomBar
 import com.example.ui.components.GundemTopBar
 import com.example.ui.presentation.shouldShowFeedControls
+import com.example.ui.presentation.BackNavigationAction
+import com.example.ui.presentation.resolveBackNavigation
 import com.example.ui.screens.*
 import com.example.ui.theme.GundemAITheme
 import com.example.ui.viewmodel.NewsViewModel
@@ -67,6 +70,23 @@ class MainActivity : ComponentActivity() {
             val privacyOptionsRequired by AdConsentManager.privacyOptionsRequired.collectAsStateWithLifecycle()
 
             GundemAITheme(darkTheme = darkThemeEnabled) {
+                val backNavigationAction = resolveBackNavigation(
+                    hasSelectedArticle = selectedArticle != null,
+                    selectedTab = selectedTab,
+                    searchQuery = searchQuery,
+                )
+                BackHandler(
+                    enabled = authCompleted &&
+                        onboardingCompleted &&
+                        backNavigationAction != BackNavigationAction.EXIT
+                ) {
+                    when (backNavigationAction) {
+                        BackNavigationAction.CLOSE_ARTICLE -> viewModel.selectArticle(null)
+                        BackNavigationAction.OPEN_HOME -> viewModel.selectTab(0)
+                        BackNavigationAction.CLEAR_SEARCH -> viewModel.setSearchQuery("")
+                        BackNavigationAction.EXIT -> Unit
+                    }
+                }
                 if (!authCompleted) {
                     AuthScreen(
                         onAuthSuccess = { email, name ->
@@ -109,6 +129,7 @@ class MainActivity : ComponentActivity() {
                                     onCategorySelected = { viewModel.selectCategory(it) },
                                     searchQuery = searchQuery,
                                     onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                                    onSearchSubmit = { viewModel.submitSearchQuery() },
                                     onRefreshClick = { viewModel.refreshNews(forceRefresh = true) }
                                 )
                             }
@@ -128,7 +149,13 @@ class MainActivity : ComponentActivity() {
                                 isRefreshing = isRefreshing,
                                 syncError = syncError,
                                 isProUser = isProUser,
+                                selectedCategory = selectedCategory,
+                                searchQuery = searchQuery,
                                 onRefresh = { viewModel.refreshNews(forceRefresh = true) },
+                                onShowAll = {
+                                    viewModel.setSearchQuery("")
+                                    viewModel.selectCategory("Tümü")
+                                },
                                 onArticleClick = { id -> viewModel.selectArticle(id) },
                                 onBookmarkToggle = { id, status -> viewModel.toggleBookmark(id, status) },
                                 modifier = modifier
@@ -138,8 +165,7 @@ class MainActivity : ComponentActivity() {
                                 recentSearches = recentSearches,
                                 onTopicClick = { topicId -> viewModel.toggleTopicFollow(topicId) },
                                 onSearchTagClick = { query ->
-                                    viewModel.setSearchQuery(query)
-                                    viewModel.selectTab(0)
+                                    viewModel.openSearch(query)
                                 },
                                 modifier = modifier
                             )

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,14 +41,39 @@ fun ExploreScreen(
     val accentBlue = MaterialTheme.colorScheme.primary
     val primaryTextColor = MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    var showAllTelegramSources by rememberSaveable { mutableStateOf(false) }
+    var showAllRssSources by rememberSaveable { mutableStateOf(false) }
 
-    LazyColumn(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(bgColor),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxHeight()
+                .widthIn(max = 720.dp)
+                .fillMaxWidth()
+                .align(Alignment.TopCenter),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Keşfet",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black,
+                    color = primaryTextColor,
+                )
+                Text(
+                    text = "İlgi alanlarını ve haber kaynaklarını düzenle.",
+                    fontSize = 13.sp,
+                    color = secondaryTextColor,
+                )
+            }
+        }
+
         // --- 1. SON ARAMALAR (RECENT SEARCHES) ---
         if (recentSearches.isNotEmpty()) {
             item {
@@ -130,7 +156,7 @@ fun ExploreScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Popüler Konular & Takip Listesi",
+                            text = "İlgi Alanların",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = primaryTextColor
@@ -138,7 +164,7 @@ fun ExploreScreen(
                     }
 
                     Text(
-                        text = "İlgilendiğiniz konuları seçerek ana akışınızı özelleştirin.",
+                        text = "Takip etmek istediğin konuları seç. Sana Özel akışı seçimlerine göre ve daima yeniden eskiye sıralanır.",
                         fontSize = 12.sp,
                         color = secondaryTextColor
                     )
@@ -196,7 +222,7 @@ fun ExploreScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "Canlı Haber Kaynakları",
+                    text = "Kaynaklarda Ara",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryTextColor
@@ -233,7 +259,7 @@ fun ExploreScreen(
                                 )
                             }
                             Text(
-                                text = "Anlık Telegram Kanalları (${TelegramConfig.CHANNELS.size})",
+                            text = "Telegram Kaynakları (${TelegramConfig.CHANNELS.size})",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = primaryTextColor
@@ -244,7 +270,9 @@ fun ExploreScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            TelegramConfig.CHANNELS.forEach { channel ->
+                            TelegramConfig.CHANNELS
+                                .take(if (showAllTelegramSources) Int.MAX_VALUE else 6)
+                                .forEach { channel ->
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
@@ -267,10 +295,20 @@ fun ExploreScreen(
                                             text = channel.displayName,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = Color.White
+                                            color = primaryTextColor
                                         )
                                     }
                                 }
+                            }
+                        }
+                        if (TelegramConfig.CHANNELS.size > 6) {
+                            TextButton(onClick = {
+                                showAllTelegramSources = !showAllTelegramSources
+                            }) {
+                                Text(
+                                    if (showAllTelegramSources) "Daha az göster"
+                                    else "Tüm Telegram kaynaklarını göster"
+                                )
                             }
                         }
                     }
@@ -307,7 +345,7 @@ fun ExploreScreen(
                                 )
                             }
                             Text(
-                                text = "Ulusal & Uluslararası Ajanslar (${RssFeedConfig.SOURCES.size})",
+                                text = "Haber Siteleri (${RssFeedConfig.SOURCES.size})",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = primaryTextColor
@@ -318,7 +356,9 @@ fun ExploreScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            RssFeedConfig.SOURCES.forEach { source ->
+                            RssFeedConfig.SOURCES
+                                .take(if (showAllRssSources) Int.MAX_VALUE else 8)
+                                .forEach { source ->
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
@@ -345,6 +385,16 @@ fun ExploreScreen(
                                         )
                                     }
                                 }
+                            }
+                        }
+                        if (RssFeedConfig.SOURCES.size > 8) {
+                            TextButton(onClick = {
+                                showAllRssSources = !showAllRssSources
+                            }) {
+                                Text(
+                                    if (showAllRssSources) "Daha az göster"
+                                    else "Tüm haber sitelerini göster"
+                                )
                             }
                         }
                     }
@@ -376,15 +426,15 @@ fun ExploreScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Yapay Zekâ Doğrulama & Taraf Tespiti",
+                            text = "Kaynak ve Analiz Şeffaflığı",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
 
                     Text(
-                        text = "GündemAI, Telegram ve RSS kaynaklarından gelen haberleri çapraz kontrolden geçirir. Çelişkili ifadeleri ve doğrulanmamış iddiaları otomatik ayrıştırır.",
+                        text = "GündemAI her haberde kaynak sayısını açıkça gösterir; farklı anlatımlar bulunduğunda çelişkileri ve doğrulanmamış iddiaları analizde ayırır.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         lineHeight = 17.sp
@@ -395,6 +445,7 @@ fun ExploreScreen(
 
         item {
             Spacer(modifier = Modifier.height(12.dp))
+        }
         }
     }
 }

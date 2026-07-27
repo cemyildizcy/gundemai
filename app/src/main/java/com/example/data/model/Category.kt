@@ -6,14 +6,14 @@ data class Category(
     val iconName: String = "Article"
 ) {
     companion object {
-        val ALL_CATEGORIES = listOf(
+        val INTEREST_CATEGORIES = listOf(
             Category("SANA_OZEL", "Sana Özel", "AutoAwesome"),
             Category("SON_DAKIKA", "Son Dakika", "Bolt"),
-            Category("YAPAY_ZEKA", "Yapay Zekâ", "Psychology"),
-            Category("TEKNOLOJI", "Teknoloji", "Devices"),
             Category("TURKIYE", "Türkiye", "Flag"),
             Category("DUNYA", "Dünya", "Public"),
             Category("EKONOMI", "Ekonomi", "TrendingUp"),
+            Category("TEKNOLOJI", "Teknoloji", "Devices"),
+            Category("YAPAY_ZEKA", "Yapay Zekâ", "Psychology"),
             Category("SPOR", "Spor", "SportsSoccer"),
             Category("TRANSFER", "Transfer", "SwapHoriz"),
             Category("BILIM", "Bilim", "Science"),
@@ -24,6 +24,12 @@ data class Category(
             Category("KULTUR_SANAT", "Kültür ve Sanat", "Palette"),
             Category("SAGLIK", "Sağlık", "HealthAndSafety")
         )
+
+        val NOTIFICATION_CATEGORIES =
+            INTEREST_CATEGORIES.filterNot { it.id == "SANA_OZEL" }
+
+        val FEED_FILTER_CATEGORIES =
+            listOf(Category("TUMU", "Tümü", "ViewList")) + INTEREST_CATEGORIES
     }
 }
 

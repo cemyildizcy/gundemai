@@ -11,3 +11,9 @@ internal fun resolveBannerAdUnitId(
 } else {
     configuredAdUnitId
 }
+
+internal fun shouldRequestBannerAds(
+    isProUser: Boolean,
+    adsEnabled: Boolean,
+    canRequestAds: Boolean,
+): Boolean = !isProUser && adsEnabled && canRequestAds

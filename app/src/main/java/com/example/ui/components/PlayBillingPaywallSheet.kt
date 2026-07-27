@@ -115,9 +115,9 @@ fun PlayBillingPaywallSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val statusText = when (connectionState) {
-                        is BillingConnectionState.Connected -> "Google Play Billing Bağlı"
+                        is BillingConnectionState.Connected -> "Google Play'e Bağlı"
                         is BillingConnectionState.Connecting -> "Google Play Bağlanıyor..."
-                        else -> "Google Play Billing Kullanılamıyor"
+                        else -> "Ödeme Hizmeti Kullanılamıyor"
                     }
 
                     val statusColor = when (connectionState) {
@@ -155,7 +155,7 @@ fun PlayBillingPaywallSheet(
 
                 // Subtitle
                 Text(
-                    text = "Tüm reklamları kaldırın ve haber akışını kesintisiz okuyun.",
+                    text = "Banner reklamlarını kaldırın ve haber akışını daha sade okuyun.",
                     fontSize = 13.sp,
                     color = secondaryTextColor,
                     lineHeight = 18.sp
@@ -163,7 +163,7 @@ fun PlayBillingPaywallSheet(
 
                 // Feature Checklist
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FeatureCheckItem("🚫 %100 Reklamsız Haber Okuma Deneyimi")
+                    FeatureCheckItem("Banner reklamsız haber okuma deneyimi")
                     FeatureCheckItem("🤖 Sunucuda hazırlanmış ortak yapay zekâ analizleri")
                     FeatureCheckItem("Son dakika haber bildirimleri")
                     FeatureCheckItem("🔄 Google Play hesabıyla tüm cihazlarda otomatik senkronizasyon")
@@ -217,7 +217,7 @@ fun PlayBillingPaywallSheet(
 
                             Text("Yıllık Plan", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                             Text(yearlyProduct?.formattedPrice ?: "Kullanılamıyor", fontSize = 15.sp, fontWeight = FontWeight.Black, color = goldAccent)
-                            Text(yearlyProduct?.description ?: "Play Console ürünü bekleniyor", fontSize = 10.sp, color = secondaryTextColor, maxLines = 2)
+                            Text(yearlyProduct?.description ?: "Yıllık plan şu anda kullanılamıyor", fontSize = 10.sp, color = secondaryTextColor, maxLines = 2)
                         }
                     }
 
@@ -255,7 +255,7 @@ fun PlayBillingPaywallSheet(
 
                             Text("Aylık Plan", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                             Text(monthlyProduct?.formattedPrice ?: "Kullanılamıyor", fontSize = 15.sp, fontWeight = FontWeight.Black, color = accentBlue)
-                            Text(monthlyProduct?.description ?: "Play Console ürünü bekleniyor", fontSize = 10.sp, color = secondaryTextColor, maxLines = 2)
+                            Text(monthlyProduct?.description ?: "Aylık plan şu anda kullanılamıyor", fontSize = 10.sp, color = secondaryTextColor, maxLines = 2)
                         }
                     }
                 }
@@ -274,7 +274,7 @@ fun PlayBillingPaywallSheet(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 CircularProgressIndicator(color = goldAccent, modifier = Modifier.size(20.dp))
-                                Text("Google Play ödeme ekranı başlatılıyor...", fontSize = 12.sp, color = Color.White)
+                                Text("Google Play ödeme ekranı başlatılıyor...", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
                             }
                         }
                     }
@@ -325,7 +325,7 @@ fun PlayBillingPaywallSheet(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(Icons.Default.Error, contentDescription = null, tint = Color(0xFFFCA5A5))
-                                    Text("Google Play Billing Hatası", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFCA5A5))
+                                    Text("Ödeme İşlemi Tamamlanamadı", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFCA5A5))
                                 }
                                 Text(purchaseState.message, fontSize = 12.sp, color = Color(0xFFFEE2E2))
                                 Button(
@@ -450,7 +450,7 @@ fun PlayBillingPaywallSheet(
                 Text(
                     text = "Abonelik Google Play hesabınız üzerinden otomatik olarak tahsil edilir. İstediğiniz an Google Play Store -> Abonelikler menüsünden iptal edebilirsiniz.",
                     fontSize = 10.sp,
-                    color = Color(0xFF64748B),
+                    color = secondaryTextColor,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                     lineHeight = 14.sp

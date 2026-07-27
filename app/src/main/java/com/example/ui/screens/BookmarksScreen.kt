@@ -186,10 +186,10 @@ fun BookmarksScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "Çevrimdışı Okuma Modu: Kaydedilen içerikler yerel veritabanında saklanır.",
+                                text = "Kaydettiğiniz haberleri internet bağlantısı olmadan da okuyabilirsiniz.",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFFA7F3D0)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 

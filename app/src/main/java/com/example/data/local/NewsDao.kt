@@ -32,7 +32,7 @@ interface NewsDao {
     @Query("SELECT * FROM news_articles WHERE id = :id")
     suspend fun getArticleByIdSync(id: String): NewsArticle?
 
-    @Query("SELECT * FROM news_articles WHERE title LIKE '%' || :query || '%' OR summary LIKE '%' || :query || '%' OR whatHappened LIKE '%' || :query || '%' ORDER BY publishedAt DESC, id ASC")
+    @Query("SELECT * FROM news_articles WHERE title LIKE '%' || :query || '%' OR summary LIKE '%' || :query || '%' OR whatHappened LIKE '%' || :query || '%' OR sourceName LIKE '%' || :query || '%' ORDER BY publishedAt DESC, id ASC")
     fun searchArticles(query: String): Flow<List<NewsArticle>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

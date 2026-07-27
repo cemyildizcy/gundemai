@@ -102,7 +102,7 @@ fun OnboardingScreen(
                 }
 
                 Text(
-                    text = "Yapay zekâ ile kişiselleştirilmiş, çok kaynaklı ve tarafsız haber akışınızı oluşturmak için ilgi alanlarınızı seçin.",
+                    text = "Kaynakları görünür, ortak yapay zekâ analiziyle hazırlanan haber akışınızı ilgi alanlarınıza göre düzenleyin.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -121,7 +121,7 @@ fun OnboardingScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Category.ALL_CATEGORIES.forEach { category ->
+                Category.INTEREST_CATEGORIES.forEach { category ->
                     val isSelected = selectedCategories.contains(category.displayName)
 
                     Box(

@@ -19,20 +19,26 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 
 @Composable
-fun AdMobTestNativeCard(modifier: Modifier = Modifier) {
-    AdMobBanner(modifier.testTag("admob_feed_banner"))
+fun AdMobTestNativeCard(
+    isProUser: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    AdMobBanner(isProUser, modifier.testTag("admob_feed_banner"))
 }
 
 @Composable
-fun AdMobTestAdaptiveBanner(modifier: Modifier = Modifier) {
-    AdMobBanner(modifier.testTag("admob_detail_banner"))
+fun AdMobTestAdaptiveBanner(
+    isProUser: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    AdMobBanner(isProUser, modifier.testTag("admob_detail_banner"))
 }
 
 @Composable
-private fun AdMobBanner(modifier: Modifier) {
-    if (!BuildConfig.ADS_ENABLED) return
+private fun AdMobBanner(isProUser: Boolean, modifier: Modifier) {
+    if (isProUser || !BuildConfig.ADS_ENABLED) return
     val canRequestAds by AdConsentManager.canRequestAds.collectAsStateWithLifecycle()
-    if (!canRequestAds) return
+    if (!shouldRequestBannerAds(isProUser, BuildConfig.ADS_ENABLED, canRequestAds)) return
 
     val adViewState = remember { mutableStateOf<AdView?>(null) }
     DisposableEffect(Unit) {

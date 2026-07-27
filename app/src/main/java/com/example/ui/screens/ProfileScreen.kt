@@ -248,7 +248,7 @@ fun ProfileScreen(
 
                 HorizontalDivider(color = cardBorderColor)
 
-                // User Usage Analytics Stats Row
+                // Only show values derived from the user's actual preferences.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -258,12 +258,6 @@ fun ProfileScreen(
                     }
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         StatItem(number = "${followedTopics.size}", label = "Konu", icon = Icons.Default.TrendingUp)
-                    }
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        StatItem(number = "1.5 Sa", label = "Tasarruf", icon = Icons.Default.Speed)
-                    }
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        StatItem(number = "%100", label = "Doğruluk", icon = Icons.Default.CheckCircle)
                     }
                 }
             }
@@ -316,7 +310,11 @@ fun ProfileScreen(
                                 text = if (isProUser) "Reklamsız Deneyim (Doğrulandı)" else "Abonelik Durumu: Ücretsiz",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = if (isProUser) {
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                } else {
+                                    primaryTextColor
+                                },
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -355,7 +353,7 @@ fun ProfileScreen(
                     else
                         "Şu anda reklamlı ücretsiz moddasınız. Başka bir cihazda satın aldıysanız Google Play satın alma geçmişinden geri yükleyebilirsiniz.",
                     fontSize = 12.sp,
-                    color = if (isProUser) Color(0xFFD1FAE5) else secondaryTextColor,
+                    color = if (isProUser) MaterialTheme.colorScheme.onSecondaryContainer else secondaryTextColor,
                     lineHeight = 17.sp
                 )
 
@@ -451,7 +449,7 @@ fun ProfileScreen(
                             text = if (isProUser) "Google Play Pro Üyelik Aktif" else "Reklamları Kaldır & Pro'ya Yükselt",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
@@ -467,7 +465,7 @@ fun ProfileScreen(
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
-                                text = "PLAY BILLING",
+                                text = "GOOGLE PLAY",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -479,9 +477,9 @@ fun ProfileScreen(
 
                 Text(
                     text = if (isProUser)
-                        "Google Play hesabınız üzerinden aktif Pro üyeliğiniz doğrulandı. AdMob banner ve geçiş reklamları tamamen kaldırıldı."
+                        "Google Play hesabınız üzerinden aktif Pro üyeliğiniz doğrulandı. Uygulama içindeki reklamlar kaldırıldı."
                     else
-                        "İsteyen kullanıcılar giriş yapmadan da reklamlı ücretsiz modda kullanabilir. Reklamsız satın almak isteyenler için Google Play In-App Subscription (Uygulama İçi Satın Alma) güvencesiyle hesabınıza tanımlanır.",
+                        "Uygulamayı giriş yapmadan reklamlı ücretsiz modda kullanabilirsiniz. Pro aboneliğiniz Google Play hesabınıza tanımlanır.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     lineHeight = 18.sp
@@ -489,10 +487,8 @@ fun ProfileScreen(
 
                 // Plan Perks Bullet Points
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    ProPerkRow("🚫 %100 Reklamsız Haber Okuma Deneyimi (AdMob Engellendi)")
-                    ProPerkRow("Takip edilen kategoriler için yeni haber bildirimleri")
-                    ProPerkRow("🤖 Sunucuda hazırlanmış ortak yapay zekâ analizleri")
-                    ProPerkRow("🔄 Google Play hesabıyla abonelik geri yükleme")
+                    ProPerkRow("Uygulama içindeki banner reklamlarını kaldırır")
+                    ProPerkRow("Google Play hesabınızla diğer cihazlarda geri yüklenebilir")
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -545,7 +541,9 @@ fun ProfileScreen(
                         },
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(48.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -648,7 +646,7 @@ fun ProfileScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Yerel Veritabanı Büyüklüğü",
+                            text = "Önbellek ve Depolama",
                             fontSize = 13.sp,
                             color = primaryTextColor
                         )
@@ -664,7 +662,7 @@ fun ProfileScreen(
                     OutlinedButton(
                         onClick = {
                             onClearCache {
-                                Toast.makeText(context, "Yerel haber ve arama önbelleği temizlendi.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Haber ve arama önbelleği temizlendi.", Toast.LENGTH_SHORT).show()
                             }
                         },
                         shape = RoundedCornerShape(8.dp),
@@ -746,7 +744,7 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(Icons.Default.StarRate, contentDescription = null, tint = goldAccent)
-                        Text("Uygulamayı Puanla (5 Yıldız Ver)", fontSize = 13.sp, color = primaryTextColor)
+                        Text("Uygulamayı Google Play'de Değerlendir", fontSize = 13.sp, color = primaryTextColor)
                     }
                     Icon(Icons.Default.ChevronRight, contentDescription = null, tint = secondaryTextColor)
                 }
@@ -768,7 +766,7 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = secondaryTextColor)
-                        Text("Gizlilik Politikası ve Kullanım Koşulları", fontSize = 13.sp, color = primaryTextColor)
+                        Text("Gizlilik Politikası", fontSize = 13.sp, color = primaryTextColor)
                     }
                     Icon(Icons.Default.ChevronRight, contentDescription = null, tint = secondaryTextColor)
                 }
@@ -893,7 +891,7 @@ fun ProfileScreen(
             title = { Text("Hesabı kalıcı olarak sil", color = primaryTextColor, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "Firebase hesabınız ve bu cihazdaki kişisel tercihleriniz kalıcı olarak silinir. " +
+                    "Uygulama hesabınız ve bu cihazdaki kişisel tercihleriniz kalıcı olarak silinir. " +
                         "Bu işlem Google Play aboneliğinizi iptal etmez; aktif aboneliği Play Store'dan ayrıca iptal etmelisiniz.",
                     color = secondaryTextColor,
                     lineHeight = 19.sp
@@ -1021,7 +1019,7 @@ private fun ProPerkRow(text: String) {
         Text(
             text = text,
             fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
             fontWeight = FontWeight.Medium,
             lineHeight = 16.sp
         )

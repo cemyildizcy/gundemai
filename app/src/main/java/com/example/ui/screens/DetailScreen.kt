@@ -172,7 +172,7 @@ fun DetailScreen(
                         }
                     }
 
-                    if (!isProUser) AdMobTestAdaptiveBanner()
+                    AdMobTestAdaptiveBanner(isProUser = isProUser)
                 }
             }
         }

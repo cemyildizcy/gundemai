@@ -75,7 +75,7 @@ class PlayBillingManager(
             startConnection()
         } catch (e: Exception) {
             _connectionState.value = BillingConnectionState.Error(
-                message = "Google Play Billing istemcisi başlatılamadı: ${e.localizedMessage}",
+                message = "Google Play ödeme hizmeti şu anda başlatılamıyor.",
                 responseCode = -1
             )
             _availableProducts.value = emptyList()
@@ -123,9 +123,11 @@ class PlayBillingManager(
         billingClient?.queryProductDetailsAsync(params) { billingResult, queryResult ->
             val productDetailsList = queryResult.productDetailsList
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
-                val mapped = productDetailsList.map { pd ->
+                val mapped = productDetailsList.mapNotNull { pd ->
                     val offer = pd.subscriptionOfferDetails?.firstOrNull()
-                    val price = offer?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice ?: "₺49,99"
+                        ?: return@mapNotNull null
+                    val price = offer.pricingPhases.pricingPhaseList.firstOrNull()?.formattedPrice
+                        ?: return@mapNotNull null
                     val period = if (pd.productId == SKU_PRO_MONTHLY) "MONTHLY" else "YEARLY"
                     BillingSubscriptionProduct(
                         productId = pd.productId,
@@ -168,7 +170,7 @@ class PlayBillingManager(
                 onResult?.invoke(false, errorMsg)
             }
         } ?: run {
-            onResult?.invoke(false, "Google Play Billing istemcisi aktif değil.")
+            onResult?.invoke(false, "Google Play ödeme hizmeti şu anda kullanılamıyor.")
         }
     }
 
@@ -201,7 +203,7 @@ class PlayBillingManager(
         }
 
         _purchaseState.value = BillingPurchaseState.Error(
-            "Google Play ürün bilgisi hazır değil. Play Console ürünlerini ve test hesabını kontrol edin.",
+            "Google Play abonelik bilgileri şu anda hazır değil. Lütfen daha sonra tekrar deneyin.",
             BillingClient.BillingResponseCode.ITEM_UNAVAILABLE
         )
         return false
@@ -269,11 +271,11 @@ class PlayBillingManager(
             BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE -> "Google Play Hizmetlerine ulaşılamıyor. İnternet bağlantınızı kontrol edin."
             BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> "Google Play Uygulama İçi Satın Alma bu cihazda desteklenmiyor veya hesabınız yetkisiz."
             BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> "İstenen ürün şu anda satışta değil."
-            BillingClient.BillingResponseCode.DEVELOPER_ERROR -> "Geliştirici yapılandırma hatası. Google Play Console konsol ürün eşleşmesini kontrol edin."
-            BillingClient.BillingResponseCode.ERROR -> "Google Play Billing sunucularında genel bir hata oluştu."
+            BillingClient.BillingResponseCode.DEVELOPER_ERROR -> "Abonelik bilgileri şu anda doğrulanamıyor. Lütfen daha sonra tekrar deneyin."
+            BillingClient.BillingResponseCode.ERROR -> "Google Play ödeme hizmetinde geçici bir hata oluştu."
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> "Bu ürün zaten hesabınızda tanımlı."
             BillingClient.BillingResponseCode.ITEM_NOT_OWNED -> "Bu ürüne sahip değilsiniz."
-            else -> "Bilinmeyen Google Play Billing Hatası (Kod: $code)."
+            else -> "Google Play ödeme işlemi tamamlanamadı (Kod: $code)."
         }
     }
 }

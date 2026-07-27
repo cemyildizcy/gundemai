@@ -111,7 +111,7 @@ class AuthRepository(
     }
 
     private fun firebaseUnavailable() = AuthResult.Error(
-        "Giriş servisi yapılandırılmamış. Firebase google-services.json dosyasını ekleyip tekrar deneyin."
+        "Giriş servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin."
     )
 
     private fun authErrorMessage(error: Exception): String = when {

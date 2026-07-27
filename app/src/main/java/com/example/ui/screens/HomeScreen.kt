@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +41,10 @@ fun HomeScreen(
     isRefreshing: Boolean,
     syncError: String? = null,
     isProUser: Boolean = false,
+    selectedCategory: String = "Tümü",
+    searchQuery: String = "",
     onRefresh: () -> Unit,
+    onShowAll: () -> Unit = {},
     onArticleClick: (articleId: String) -> Unit,
     onBookmarkToggle: (articleId: String, currentStatus: Boolean) -> Unit,
     modifier: Modifier = Modifier
@@ -55,19 +59,32 @@ fun HomeScreen(
                 SkeletonLoadingFeed(count = 3, modifier = Modifier.padding(12.dp))
             }
             articles.isEmpty() -> {
+                val hasActiveFilter = searchQuery.isNotBlank() || selectedCategory != "Tümü"
+                val isFilteredEmptyState = syncError == null && hasActiveFilter
+                val emptyMessage = when {
+                    syncError != null -> syncError
+                    searchQuery.isNotBlank() -> "“${searchQuery.trim()}” aramasıyla eşleşen haber bulunamadı."
+                    selectedCategory == "Sana Özel" -> "Sana Özel akışında henüz haber yok."
+                    selectedCategory != "Tümü" -> "$selectedCategory kategorisinde henüz haber yok."
+                    else -> "Henüz yayıma hazır haber bulunmuyor."
+                }
                 Column(
                     modifier = Modifier.fillMaxSize().padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = syncError ?: "Henüz yayıma hazır haber bulunmuyor.",
+                        text = emptyMessage,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                     Spacer(Modifier.height(16.dp))
-                    FilledTonalButton(onClick = onRefresh) { Text("Tekrar dene") }
+                    if (isFilteredEmptyState) {
+                        FilledTonalButton(onClick = onShowAll) { Text("Tüm haberleri göster") }
+                    } else {
+                        FilledTonalButton(onClick = onRefresh) { Text("Tekrar dene") }
+                    }
                 }
             }
             else -> {
@@ -77,7 +94,10 @@ fun HomeScreen(
                 } ?: articles
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .widthIn(max = 720.dp)
+                        .fillMaxSize()
+                        .align(Alignment.TopCenter),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -131,9 +151,9 @@ fun HomeScreen(
                             onClick = { onArticleClick(article.id) },
                             onBookmarkToggle = { onBookmarkToggle(article.id, article.isBookmarked) }
                         )
-                        if (!isProUser && index > 0 && index % 6 == 0) {
+                        if (index > 0 && index % 6 == 0) {
                             Spacer(Modifier.height(4.dp))
-                            AdMobTestNativeCard()
+                            AdMobTestNativeCard(isProUser = isProUser)
                         }
                     }
                 }

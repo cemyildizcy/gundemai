@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserNotification
+import com.example.data.model.Category
 import com.example.util.DateUtils
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -47,10 +48,7 @@ fun NotificationsScreen(
     var selectedFilter by remember { mutableStateOf("Tümü") }
     var isSettingsExpanded by remember { mutableStateOf(true) }
 
-    val allCategoryOptions = listOf(
-        "Son Dakika", "Yapay Zekâ", "Teknoloji", "Türkiye", "Dünya", "Ekonomi", "Finans",
-        "Kripto", "Spor", "Transfer", "Bilim", "Oyun", "Girişimcilik", "Kültür ve Sanat", "Sağlık"
-    )
+    val allCategoryOptions = Category.NOTIFICATION_CATEGORIES.map { it.displayName }
 
     val unreadCount = remember(notifications) { notifications.count { !it.isRead } }
 
@@ -135,10 +133,10 @@ fun NotificationsScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Arka Plan Servisi (WorkManager) Aktif: Bildirimler ana performansı etkilemeden arka planda işlenir.",
+                        text = "Bildirimler yalnızca seçtiğiniz kategoriler için gönderilir.",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF93C5FD)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
