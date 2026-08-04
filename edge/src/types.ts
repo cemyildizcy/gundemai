@@ -43,6 +43,7 @@ export interface RawNewsItem {
   description: string;
   categoryHint: CategoryName;
   imageUrl: string | null;
+  videoUrl: string | null;
   url: string;
   sourceName: string;
   publishedAt: number;
@@ -54,6 +55,7 @@ export interface QueueRow {
   raw_description: string;
   category_hint: string;
   image_url: string | null;
+  video_url: string | null;
   published_at: number;
   attempts: number;
 }
@@ -64,6 +66,7 @@ export interface ReadyRow {
   summary: string;
   category: CategoryName;
   image_url: string | null;
+  video_url: string | null;
   published_at: number;
   ready_at: number;
   what_happened: string;

@@ -8,7 +8,6 @@ export const NEWS_SOURCES: NewsSource[] = [
   { kind: "rss", name: "BBC Turkce", url: "https://feeds.bbci.co.uk/turkce/rss.xml", category: "Dunya" },
   { kind: "rss", name: "ShiftDelete.Net", url: "https://shiftdelete.net/feed", category: "Teknoloji" },
   { kind: "rss", name: "Webtekno", url: "https://www.webtekno.com/rss.xml", category: "Teknoloji" },
-  { kind: "rss", name: "DonanimHaber", url: "https://www.donanimhaber.com/rss/tum/", category: "Teknoloji" },
   { kind: "rss", name: "TechCrunch AI", url: "https://techcrunch.com/category/artificial-intelligence/feed/", category: "Yapay Zeka" },
   { kind: "rss", name: "OpenAI News", url: "https://openai.com/news/rss.xml", category: "Yapay Zeka" },
   { kind: "rss", name: "MIT Technology Review AI", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed", category: "Yapay Zeka" },
@@ -39,4 +38,8 @@ export const SOURCE_SHARD_COUNT = 5;
 
 export function sourcesForShard(shard: number): NewsSource[] {
   return NEWS_SOURCES.filter((_, index) => index % SOURCE_SHARD_COUNT === shard);
+}
+
+export function scheduledSourceShard(now = Date.now()): number {
+  return Math.floor(new Date(now).getUTCMinutes() / 3) % SOURCE_SHARD_COUNT;
 }

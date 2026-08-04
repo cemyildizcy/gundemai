@@ -7,7 +7,7 @@ const EVENT_MATCH_WINDOW_MS = 48 * 60 * 60 * 1000;
 const MAX_ITEMS_PER_SOURCE = 25;
 const URL_QUERY_CHUNK = 70;
 const WRITE_BATCH_SIZE = 80;
-const MAX_IMAGE_FETCHES_PER_SHARD = 1;
+const MAX_MEDIA_FETCHES_PER_SHARD = 1;
 const SOURCE_FEED_URLS = new Set(NEWS_SOURCES.map((source) => new URL(source.url).toString()));
 const EVENT_STOPWORDS = new Set([
   "acikladi", "aciklandi", "ardindan", "bir", "bu", "da", "de", "icin", "ile",
@@ -84,6 +84,23 @@ export function sanitizeImageUrl(rawUrl: string | null | undefined): string | nu
   }
 }
 
+export function sanitizeVideoUrl(rawUrl: string | null | undefined): string | null {
+  if (!rawUrl) return null;
+  try {
+    const url = new URL(rawUrl);
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    const path = url.pathname.toLowerCase();
+    const isDirectVideo = ['.mp4', '.m3u8', '.webm', '.mov'].some((extension) =>
+      path.endsWith(extension)
+    );
+    if (!isDirectVideo) return null;
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function extractArticleImage(html: string, articleUrl: string): string | null {
   const rawImage = firstAttribute(html, [
     /<meta\b[^>]*(?:property|name)=["'](?:og:image(?::url)?|twitter:image(?::src)?)["'][^>]*content=["']([^"']+)["'][^>]*>/i,
@@ -91,6 +108,52 @@ export function extractArticleImage(html: string, articleUrl: string): string | 
     /<link\b[^>]*rel=["']image_src["'][^>]*href=["']([^"']+)["'][^>]*>/i
   ]);
   return sanitizeImageUrl(canonicalUrl(rawImage, articleUrl));
+}
+
+export function extractArticleVideo(html: string, articleUrl: string): string | null {
+  const rawVideo = firstAttribute(html, [
+    /<meta\b[^>]*(?:property|name)=["'](?:og:video(?::url)?|twitter:player:stream)["'][^>]*content=["']([^"']+)["'][^>]*>/i,
+    /<meta\b[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:video(?::url)?|twitter:player:stream)["'][^>]*>/i,
+    /<(?:video|source)\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/i
+  ]);
+  return sanitizeVideoUrl(canonicalUrl(rawVideo, articleUrl));
+}
+
+function tagAttribute(attributes: string, name: string): string {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return cleanText(
+    attributes.match(new RegExp(`\\b${escaped}=["']([^"']+)["']`, 'i'))?.[1] ?? ''
+  );
+}
+
+function rssMedia(block: string, baseUrl: string): { imageUrl: string | null; videoUrl: string | null } {
+  let imageUrl: string | null = null;
+  let videoUrl: string | null = null;
+  const elements = [...block.matchAll(/<(enclosure|media:content|media:thumbnail)\b([^>]*)>/gi)];
+  for (const element of elements) {
+    const tagName = (element[1] ?? '').toLowerCase();
+    const attributes = element[2] ?? '';
+    const rawUrl = tagAttribute(attributes, 'url');
+    const absoluteUrl = canonicalUrl(rawUrl, baseUrl);
+    const type = tagAttribute(attributes, 'type').toLowerCase();
+    const medium = tagAttribute(attributes, 'medium').toLowerCase();
+    const directVideo = sanitizeVideoUrl(absoluteUrl);
+    const isVideo = medium === 'video' || type.startsWith('video/') ||
+      type.includes('mpegurl') || directVideo !== null;
+    if (!videoUrl && isVideo) {
+      videoUrl = directVideo;
+      continue;
+    }
+    if (!imageUrl && (tagName === 'media:thumbnail' || type.startsWith('image/') || !isVideo)) {
+      imageUrl = sanitizeImageUrl(absoluteUrl);
+    }
+  }
+  if (!imageUrl) {
+    imageUrl = sanitizeImageUrl(canonicalUrl(firstAttribute(block, [
+      /<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/i
+    ]), baseUrl));
+  }
+  return { imageUrl, videoUrl };
 }
 
 export function parseRss(xml: string, source: NewsSource, now = Date.now()): RawNewsItem[] {
@@ -110,17 +173,14 @@ export function parseRss(xml: string, source: NewsSource, now = Date.now()): Raw
       const description = truncate(cleanText(descriptionHtml) || title, 4_000);
       const dateText = cleanText(firstTag(block, ["pubDate", "published", "updated", "dc:date"]));
       const publishedAt = parseDate(dateText, now);
-      const imageUrl = sanitizeImageUrl(canonicalUrl(firstAttribute(block, [
-        /<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*>/i,
-        /<media:(?:content|thumbnail)\b[^>]*\burl=["']([^"']+)["'][^>]*>/i,
-        /<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/i
-      ]), source.url));
+      const { imageUrl, videoUrl } = rssMedia(block, source.url);
 
       return [{
         title: truncate(title, 300),
         description,
         categoryHint: source.category,
         imageUrl,
+        videoUrl,
         url,
         sourceName: source.name,
         publishedAt
@@ -151,6 +211,7 @@ export function parseTelegram(html: string, source: NewsSource, now = Date.now()
       description,
       categoryHint: source.category,
       imageUrl,
+      videoUrl: null,
       url: `https://t.me/${post}`,
       sourceName: source.name,
       publishedAt
@@ -245,8 +306,9 @@ async function existingUrls(db: D1Database, urls: string[]): Promise<Set<string>
   return existing;
 }
 
-async function fetchArticleImage(item: RawNewsItem): Promise<string | null> {
-  if (item.imageUrl) return sanitizeImageUrl(item.imageUrl);
+async function fetchArticleMedia(
+  item: RawNewsItem
+): Promise<{ imageUrl: string | null; videoUrl: string | null }> {
   try {
     const response = await fetch(item.url, {
       headers: {
@@ -256,32 +318,44 @@ async function fetchArticleImage(item: RawNewsItem): Promise<string | null> {
       redirect: "follow",
       signal: AbortSignal.timeout(6_000)
     });
-    if (!response.ok) return null;
+    if (!response.ok) return { imageUrl: null, videoUrl: null };
     const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.toLowerCase().includes("text/html")) return null;
+    if (!contentType.toLowerCase().includes("text/html")) {
+      return { imageUrl: null, videoUrl: null };
+    }
     const contentLength = Number.parseInt(response.headers.get("content-length") ?? "0", 10);
-    if (Number.isFinite(contentLength) && contentLength > 2_000_000) return null;
-    return extractArticleImage(await response.text(), response.url || item.url);
+    if (Number.isFinite(contentLength) && contentLength > 2_000_000) {
+      return { imageUrl: null, videoUrl: null };
+    }
+    const html = await response.text();
+    const articleUrl = response.url || item.url;
+    return {
+      imageUrl: extractArticleImage(html, articleUrl),
+      videoUrl: extractArticleVideo(html, articleUrl)
+    };
   } catch {
-    return null;
+    return { imageUrl: null, videoUrl: null };
   }
 }
 
-async function enrichMissingImages(
+async function enrichMissingMedia(
   items: RawNewsItem[],
   limit: number
 ): Promise<RawNewsItem[]> {
-  const targets = items.filter((item) => !sanitizeImageUrl(item.imageUrl))
+  const targets = items.filter((item) =>
+    !sanitizeImageUrl(item.imageUrl) || !sanitizeVideoUrl(item.videoUrl)
+  )
     .slice(0, limit);
   if (targets.length === 0) return items;
   const resolved = await Promise.all(targets.map(async (item) => [
     item.url,
-    await fetchArticleImage(item)
+    await fetchArticleMedia(item)
   ] as const));
-  const images = new Map(resolved);
+  const media = new Map(resolved);
   return items.map((item) => ({
     ...item,
-    imageUrl: sanitizeImageUrl(item.imageUrl) ?? images.get(item.url) ?? null
+    imageUrl: sanitizeImageUrl(item.imageUrl) ?? media.get(item.url)?.imageUrl ?? null,
+    videoUrl: sanitizeVideoUrl(item.videoUrl) ?? media.get(item.url)?.videoUrl ?? null
   }));
 }
 
@@ -290,17 +364,18 @@ async function persistItems(env: Env, items: RawNewsItem[], now: number): Promis
   const knownUrls = await existingUrls(env.DB, unique.map((item) => item.url));
   const unseenRaw = unique.filter((item) => !knownUrls.has(item.url));
   const knownMissing = unique.filter(
-    (item) => knownUrls.has(item.url) && !sanitizeImageUrl(item.imageUrl)
+    (item) => knownUrls.has(item.url) &&
+      (!sanitizeImageUrl(item.imageUrl) || !sanitizeVideoUrl(item.videoUrl))
   );
-  const enriched = await enrichMissingImages(
+  const enriched = await enrichMissingMedia(
     [...unseenRaw, ...knownMissing],
-    MAX_IMAGE_FETCHES_PER_SHARD
+    MAX_MEDIA_FETCHES_PER_SHARD
   );
   const enrichedByUrl = new Map(enriched.map((item) => [item.url, item]));
   const unseen = unseenRaw.map((item) => enrichedByUrl.get(item.url) ?? item);
   const backfilled = knownMissing
     .map((item) => enrichedByUrl.get(item.url) ?? item)
-    .filter((item) => item.imageUrl);
+    .filter((item) => item.imageUrl || item.videoUrl);
   const recent = await env.DB.prepare(`
     SELECT id, event_key, raw_title, published_at
     FROM news_items
@@ -355,15 +430,28 @@ async function persistItems(env: Env, items: RawNewsItem[], now: number): Promis
       )
     `).bind(item.imageUrl, item.url));
   }
+  for (const item of backfilled.filter((candidate) => candidate.videoUrl)) {
+    statements.push(env.DB.prepare(`
+      UPDATE news_items
+      SET video_url = COALESCE(video_url, ?)
+      WHERE id = (
+        SELECT article_id
+        FROM news_sources
+        WHERE url = ?
+        LIMIT 1
+      )
+    `).bind(item.videoUrl, item.url));
+  }
   for (const item of prepared) {
     statements.push(env.DB.prepare(`
       INSERT INTO news_items (
-        id, event_key, raw_title, raw_description, category_hint, image_url,
+        id, event_key, raw_title, raw_description, category_hint, image_url, video_url,
         published_at, discovered_at, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
       ON CONFLICT(id) DO UPDATE SET
         published_at = MAX(news_items.published_at, excluded.published_at),
-        image_url = COALESCE(news_items.image_url, excluded.image_url)
+        image_url = COALESCE(news_items.image_url, excluded.image_url),
+        video_url = COALESCE(news_items.video_url, excluded.video_url)
     `).bind(
       item.id,
       item.eventKey,
@@ -371,6 +459,7 @@ async function persistItems(env: Env, items: RawNewsItem[], now: number): Promis
       item.description,
       item.categoryHint,
       item.imageUrl,
+      item.videoUrl,
       item.publishedAt,
       now
     ));

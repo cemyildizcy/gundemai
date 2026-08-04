@@ -1,13 +1,11 @@
 import { categoryFor } from "./categories";
+import { AI_MODEL, runAiPrompt } from "./ai-client";
+import { choosePublishedTitle } from "./localization";
 import { distinctSourceCount } from "./source-identity";
 import { cleanText, fold, jsonStringArray, truncate } from "./text";
 import type { Env, QueueRow, SourceRow } from "./types";
 
-export const AI_MODEL = "@cf/google/gemma-4-26b-a4b-it";
-const DEFAULT_OPENROUTER_MODELS = [
-  "openrouter/free",
-  "nvidia/nemotron-3-super-120b-a12b:free"
-];
+export { AI_MODEL };
 const PROCESSING_TIMEOUT_MS = 20 * 60 * 1000;
 const GENERIC_PHRASES = [
   "sektorel gelismeler ve kamuoyu bilgilendirmesi acisindan onem tasimaktadir",
@@ -16,7 +14,8 @@ const GENERIC_PHRASES = [
   "sektorel gelismeler acisindan onemlidir"
 ];
 
-interface ModelAnalysis {
+export interface ModelAnalysis {
+  translatedTitle: string;
   summary: string;
   whatHappened: string;
   whyImportant: string;
@@ -58,9 +57,10 @@ function validateNoGenericText(analysis: ModelAnalysis): void {
   }
 }
 
-function parseAnalysis(raw: string): ModelAnalysis {
+export function parseModelAnalysis(raw: string): ModelAnalysis {
   const value = parseObject(raw);
   const analysis: ModelAnalysis = {
+    translatedTitle: requiredText(value.title_tr, "title_tr", 8),
     summary: requiredText(value.summary, "summary", 35),
     whatHappened: requiredText(value.what_happened, "what_happened", 30),
     whyImportant: requiredText(value.why_important, "why_important", 35),
@@ -87,8 +87,9 @@ function promptFor(row: QueueRow, sources: SourceRow[]): ChatCompletionsMessages
           "GundemAI icin Turkce haber editorusun.",
           "Yalniz verilen kaynak metnindeki bilgileri kullan; isim, sayi, tarih, neden veya sonuc uydurma.",
           "Her haber icin olaya ozel cumleler yaz. 'sektorel gelismeler' ve 'kamuoyu bilgilendirmesi' gibi kaliplar kullanma.",
+          "title_tr alaninda kaynak basligini gercekleri degistirmeden dogal Turkce haber basligina cevir; baslik zaten Turkceyse aynen koru.",
           "Bilinmeyen ayrintiyi missing_information alanina yaz.",
-          "Sadece gecerli JSON dondur: summary, what_happened, why_important, missing_information, possible_impacts, unverified_claims, contradictions.",
+          "Sadece gecerli JSON dondur: title_tr, summary, what_happened, why_important, missing_information, possible_impacts, unverified_claims, contradictions.",
           "Son uc alan her zaman metin dizisi olsun; yoksa []."
         ].join(" ")
       },
@@ -109,53 +110,7 @@ function promptFor(row: QueueRow, sources: SourceRow[]): ChatCompletionsMessages
 }
 
 async function callAi(env: Env, row: QueueRow, sources: SourceRow[]): Promise<ModelAnalysis> {
-  const errors: string[] = [];
-  try {
-    const output = await env.AI.run(AI_MODEL, promptFor(row, sources));
-    const content = output.choices[0]?.message.content;
-    if (!content) throw new Error("Workers AI bos yanit verdi");
-    return parseAnalysis(content);
-  } catch (error) {
-    errors.push(`Cloudflare: ${error instanceof Error ? error.message : String(error)}`);
-  }
-
-  if (env.OPENROUTER_API_KEY) {
-    const configuredModels = env.OPENROUTER_MODELS
-      ?.split(",")
-      .map((model) => model.trim())
-      .filter(Boolean);
-    for (const model of configuredModels?.length ? configuredModels : DEFAULT_OPENROUTER_MODELS) {
-      try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://gundemai.web.app",
-            "X-Title": "GundemAI"
-          },
-          body: JSON.stringify({
-            model,
-            ...promptFor(row, sources),
-            stream: false
-          }),
-          signal: AbortSignal.timeout(25_000)
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${truncate(await response.text(), 200)}`);
-        }
-        const output = await response.json<{
-          choices?: Array<{ message?: { content?: string | null } }>;
-        }>();
-        const content = output.choices?.[0]?.message?.content;
-        if (!content) throw new Error("bos yanit");
-        return parseAnalysis(content);
-      } catch (error) {
-        errors.push(`${model}: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-  }
-  throw new Error(truncate(errors.join(" | "), 600));
+  return runAiPrompt(env, promptFor(row, sources), parseModelAnalysis);
 }
 
 function nextRetryAt(error: unknown, attempts: number, now: number): number {
@@ -187,7 +142,7 @@ async function claimRows(env: Env, limit: number, now: number): Promise<QueueRow
         discovered_at ASC
       LIMIT ?
     )
-    RETURNING id, raw_title, raw_description, category_hint, image_url,
+    RETURNING id, raw_title, raw_description, category_hint, image_url, video_url,
       published_at, attempts
   `).bind(now, now, now - 6 * 60 * 60 * 1000, limit).all<QueueRow>();
   return claimed.results;
@@ -233,7 +188,7 @@ async function markReady(
       last_error = NULL
     WHERE id = ?
   `).bind(
-    row.raw_title,
+    choosePublishedTitle(row.raw_title, analysis.translatedTitle, analysis.whatHappened),
     analysis.summary,
     category,
     analysis.whatHappened,

@@ -2,9 +2,10 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 
 import { analyzePending } from "./analyzer";
 import { collectShard, type CollectionResult } from "./collector";
-import { buildFeed, buildHealth } from "./feed";
+import { ensureDailyBrief } from "./daily-brief";
+import { buildDailyBrief, buildFeed, buildHealth } from "./feed";
 import { sendNotifications } from "./notifications";
-import { SOURCE_SHARD_COUNT } from "./sources";
+import { scheduledSourceShard } from "./sources";
 import type { Env } from "./types";
 
 interface WorkflowParams {
@@ -20,6 +21,7 @@ function scheduledInstanceId(scheduledTime: number): string {
 async function finishRun(env: Env, collections: CollectionResult[]) {
   const now = Date.now();
   const analysis = await analyzePending(env, now);
+  const dailyBrief = await ensureDailyBrief(env, now);
   let notifications = {
     attempted: 0,
     sent: 0,
@@ -43,6 +45,10 @@ async function finishRun(env: Env, collections: CollectionResult[]) {
       WHERE status = 'RETRY' AND attempts >= 20 AND discovered_at < ?
     `).bind(now - 30 * 24 * 60 * 60 * 1000),
     env.DB.prepare(`
+      DELETE FROM daily_briefs
+      WHERE date_key < ?
+    `).bind(new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)),
+    env.DB.prepare(`
       UPDATE pipeline_state SET
         last_run_at = ?,
         last_collected_count = ?,
@@ -55,24 +61,27 @@ async function finishRun(env: Env, collections: CollectionResult[]) {
       collections.reduce((total, result) => total + result.insertedItems, 0),
       analysis.published,
       notifications.sent,
-      [...collections.flatMap((result) => result.errors), ...analysis.errors, ...notifications.errors]
+      [
+        ...collections.flatMap((result) => result.errors),
+        ...analysis.errors,
+        ...(dailyBrief.error ? [`daily-brief: ${dailyBrief.error}`] : []),
+        ...notifications.errors
+      ]
         .slice(0, 8)
         .join(" | ") || null
     )
   ]);
 
-  return { collections, analysis, notifications, completedAt: now };
+  return { collections, analysis, dailyBrief, notifications, completedAt: now };
 }
 
 export class NewsWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(_event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
-    const collections: CollectionResult[] = [];
-    for (let shard = 0; shard < SOURCE_SHARD_COUNT; shard += 1) {
-      const result = await step.do(`collect-source-shard-${shard + 1}`, async () =>
-        collectShard(this.env, shard)
-      );
-      collections.push(result);
-    }
+    const shard = scheduledSourceShard();
+    const collection = await step.do(`collect-source-shard-${shard + 1}`, async () =>
+      collectShard(this.env, shard)
+    );
+    const collections: CollectionResult[] = [collection];
     return step.do("analyze-publish-notify", async () => finishRun(this.env, collections));
   }
 }
@@ -86,6 +95,9 @@ export default {
     const url = new URL(request.url);
     if (request.method === "GET" && (url.pathname === "/v1/news" || url.pathname === "/v1/news.json")) {
       return buildFeed(env, url);
+    }
+    if (request.method === "GET" && url.pathname === "/v1/daily-brief") {
+      return buildDailyBrief(env);
     }
     if (request.method === "GET" && url.pathname === "/health.json") return buildHealth(env);
     if (request.method === "POST" && url.pathname === "/admin/run") {
@@ -104,6 +116,7 @@ export default {
         service: "GundemAI Edge",
         status: "ok",
         news: "/v1/news",
+        dailyBrief: "/v1/daily-brief",
         health: "/health.json"
       });
     }

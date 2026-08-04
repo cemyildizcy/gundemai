@@ -4,10 +4,12 @@ import test from "node:test";
 import { categoryFor } from "../src/categories";
 import {
   extractArticleImage,
+  extractArticleVideo,
   isSameNewsEvent,
   parseRss,
   parseTelegram,
-  sanitizeImageUrl
+  sanitizeImageUrl,
+  sanitizeVideoUrl
 } from "../src/collector";
 import type { NewsSource } from "../src/types";
 
@@ -34,6 +36,48 @@ test("RSS and Atom entries are parsed into the shared queue format", () => {
   assert.equal(result[0]?.url, "https://example.com/haber?id=1");
   assert.equal(result[0]?.description, "Model bugün kullanıma açıldı.");
   assert.equal(result[0]?.imageUrl, "https://example.com/image.jpg");
+  assert.equal(result[0]?.videoUrl, null);
+});
+
+test("RSS video enclosures are preserved as video instead of broken images", () => {
+  const source: NewsSource = {
+    kind: "rss",
+    name: "Video Test",
+    url: "https://example.com/feed.xml",
+    category: "Dunya"
+  };
+  const rss = `<rss><channel><item>
+    <title>Video haber yayımlandı</title>
+    <link>https://example.com/news/video</link>
+    <pubDate>Thu, 23 Jul 2026 08:30:00 GMT</pubDate>
+    <enclosure url="https://cdn.example.com/news/video.mp4" type="video/mp4" />
+  </item></channel></rss>`;
+
+  const result = parseRss(rss, source, NOW);
+
+  assert.equal(result[0]?.videoUrl, "https://cdn.example.com/news/video.mp4");
+  assert.equal(result[0]?.imageUrl, null);
+});
+
+test("RSS media content can provide both a video and its thumbnail", () => {
+  const source: NewsSource = {
+    kind: "rss",
+    name: "Media Test",
+    url: "https://example.com/feed.xml",
+    category: "Teknoloji"
+  };
+  const rss = `<rss xmlns:media="http://search.yahoo.com/mrss/"><channel><item>
+    <title>Görüntülü teknoloji haberi</title>
+    <link>https://example.com/news/media</link>
+    <pubDate>Thu, 23 Jul 2026 08:30:00 GMT</pubDate>
+    <media:thumbnail url="https://cdn.example.com/news/poster.jpg" />
+    <media:content url="https://cdn.example.com/news/stream.m3u8" type="application/x-mpegURL" medium="video" />
+  </item></channel></rss>`;
+
+  const result = parseRss(rss, source, NOW);
+
+  assert.equal(result[0]?.imageUrl, "https://cdn.example.com/news/poster.jpg");
+  assert.equal(result[0]?.videoUrl, "https://cdn.example.com/news/stream.m3u8");
 });
 
 test("old RSS entries are ignored during the first durable collection", () => {
@@ -98,6 +142,19 @@ test("article metadata supplies an image when the feed has none", () => {
     extractArticleImage(html, "https://example.com/news/story"),
     "https://example.com/media/story-cover.jpg?size=large&quality=90"
   );
+});
+
+test("article metadata supplies only direct playable video URLs", () => {
+  const html = `<html><head>
+    <meta property="og:video" content="https://cdn.example.com/story/master.m3u8">
+  </head></html>`;
+
+  assert.equal(
+    extractArticleVideo(html, "https://example.com/news/story"),
+    "https://cdn.example.com/story/master.m3u8"
+  );
+  assert.equal(sanitizeVideoUrl("https://youtube.com/watch?v=123"), null);
+  assert.equal(sanitizeVideoUrl("https://cdn.example.com/story/poster.jpg"), null);
 });
 
 test("feed and Telegram listing endpoints are never accepted as images", () => {
