@@ -34,6 +34,9 @@ import com.example.ui.components.PlayBillingPaywallSheet
 import com.example.data.billing.BillingConnectionState
 import com.example.data.billing.BillingPurchaseState
 import com.example.data.billing.BillingSubscriptionProduct
+import com.example.ui.components.liquidGlassBackground
+import com.example.ui.theme.BrandNavy
+import com.example.ui.theme.BrandTeal
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -86,18 +89,20 @@ fun ProfileScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(bgColor)
+            .liquidGlassBackground()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- 1. USER ACCOUNT & HESAP YÖNETİMİ CARD ---
         Card(
-            colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            shape = RoundedCornerShape(24.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -112,7 +117,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(54.dp)
                             .clip(CircleShape)
-                            .background(if (isProUser) goldAccent else MaterialTheme.colorScheme.primary),
+                            .background(if (isProUser) goldAccent else BrandNavy),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -172,7 +177,7 @@ fun ProfileScreen(
                             Text(
                                 text = if (isProUser) "REKLAMSIZ" else "REKLAMLI",
                                 fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Black,
+                                fontWeight = FontWeight.SemiBold,
                                 color = if (isProUser) Color(0xFF10B981) else accentBlue,
                                 maxLines = 1
                             )
@@ -185,9 +190,9 @@ fun ProfileScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(18.dp))
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
                             .padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -268,13 +273,13 @@ fun ProfileScreen(
             colors = CardDefaults.cardColors(
                 containerColor = if (isProUser) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(18.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
                     1.5.dp,
                     if (isProUser) Color(0xFF10B981) else Color(0xFFF59E0B).copy(alpha = 0.5f),
-                    RoundedCornerShape(8.dp)
+                    RoundedCornerShape(18.dp)
                 )
         ) {
             Column(
@@ -340,7 +345,7 @@ fun ProfileScreen(
                         Text(
                             text = if (isProUser) "✓ REKLAMSIZ" else "REKLAMLI",
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontWeight = FontWeight.Bold,
                             color = if (isProUser) Color.Black else goldAccent,
                             maxLines = 1
                         )
@@ -368,7 +373,7 @@ fun ProfileScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isProUser) Color(0xFF10B981) else accentBlue
                     ),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp),
@@ -408,13 +413,13 @@ fun ProfileScreen(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(18.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
                     1.5.dp,
                     MaterialTheme.colorScheme.secondary,
-                    RoundedCornerShape(8.dp)
+                    RoundedCornerShape(18.dp)
                 )
         ) {
             Column(
@@ -460,15 +465,15 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.width(6.dp))
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFFEF4444))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(BrandTeal.copy(alpha = 0.14f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = "GOOGLE PLAY",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = BrandTeal,
                                 maxLines = 1
                             )
                         }
@@ -510,7 +515,7 @@ fun ProfileScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isProUser) Color(0xFF10B981) else goldAccent
                         ),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
@@ -539,7 +544,7 @@ fun ProfileScreen(
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             }
                         },
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier.height(48.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -556,11 +561,11 @@ fun ProfileScreen(
 
         // --- 3. GÖRÜNÜM TERCİHLERİ ---
         Card(
-            colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+            shape = RoundedCornerShape(18.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -622,11 +627,11 @@ fun ProfileScreen(
 
         // --- 4. VERİ, ÖNBELLEK VE DÜZENLEME ---
         Card(
-            colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+            shape = RoundedCornerShape(18.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -665,7 +670,7 @@ fun ProfileScreen(
                                 Toast.makeText(context, "Haber ve arama önbelleği temizlendi.", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text("Temizle", fontSize = 12.sp)
@@ -677,7 +682,7 @@ fun ProfileScreen(
                 // Reset Onboarding Interests Button
                 OutlinedButton(
                     onClick = onResetOnboarding,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -689,11 +694,11 @@ fun ProfileScreen(
 
         // --- 5. DESTEK, BİLDİRİM VE YASAL ---
         Card(
-            colors = CardDefaults.cardColors(containerColor = cardBgColor),
-            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+            shape = RoundedCornerShape(18.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -871,7 +876,7 @@ fun ProfileScreen(
                         onNavigateToAuth()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(18.dp)
                 ) {
                     Text("Giriş Yap Ekranına Git", fontWeight = FontWeight.Bold)
                 }
@@ -937,7 +942,7 @@ fun ProfileScreen(
         AlertDialog(
             onDismissRequest = { showFeedbackDialog = false },
             containerColor = cardBgColor,
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(18.dp),
             title = { Text("Geri Bildirim Gönder", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryTextColor) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

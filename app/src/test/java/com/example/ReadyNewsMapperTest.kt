@@ -21,6 +21,7 @@ class ReadyNewsMapperTest {
             summary = "Merkez Bankası politika faizine ilişkin yeni kararını yayımladı.",
             category = "Turkiye",
             imageUrl = "https://cdn.example.com/image.jpg",
+            videoUrl = "https://cdn.example.com/video/master.m3u8",
             sourceName = "TCMB",
             sourceUrl = "https://example.com/news",
             sourceCount = 2,
@@ -50,6 +51,7 @@ class ReadyNewsMapperTest {
         assertEquals(2, article.sourceCount)
         assertTrue(article.isAiAnalyzed)
         assertTrue(article.isBookmarked)
+        assertEquals("https://cdn.example.com/video/master.m3u8", article.videoUrl)
 
         val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
         val listType = Types.newParameterizedType(List::class.java, String::class.java)

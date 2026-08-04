@@ -13,10 +13,23 @@ import com.example.ui.presentation.sanitizeInterestCategories
 import com.example.ui.presentation.sanitizeNotificationCategories
 import com.example.ui.presentation.shouldShowFeedControls
 import com.example.ui.presentation.shouldShowVerificationBadgeInFeed
+import com.example.ui.presentation.newsImageAspectRatio
+import com.example.ui.presentation.safeHttpUrl
+import com.example.ui.presentation.shouldInvalidateStoredSession
+import com.example.ui.presentation.notificationPermissionFeedback
+import com.example.ui.presentation.shouldShowCachedOfflineHeader
+import com.example.ui.presentation.notificationSectionLabel
+import com.example.ui.presentation.shouldShowArticleImage
+import com.example.ui.presentation.formatOriginalSourceLabel
+import com.example.ui.presentation.resolveFeedControlsVisibility
+import com.example.ui.presentation.shouldOutlineNotificationCategory
+import com.example.ui.presentation.safePlayableVideoUrl
+import com.example.ui.presentation.shouldShowArticleVideo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.TimeZone
 
 class UiPresentationRulesTest {
 
@@ -27,6 +40,27 @@ class UiPresentationRulesTest {
         assertFalse(shouldShowFeedControls(2))
         assertFalse(shouldShowFeedControls(3))
         assertFalse(shouldShowFeedControls(4))
+    }
+
+    @Test
+    fun `feed controls follow intentional vertical scroll direction`() {
+        assertFalse(resolveFeedControlsVisibility(currentlyVisible = true, scrollDelta = -32f))
+        assertTrue(resolveFeedControlsVisibility(currentlyVisible = false, scrollDelta = 32f))
+        assertTrue(resolveFeedControlsVisibility(currentlyVisible = true, scrollDelta = -4f))
+        assertFalse(resolveFeedControlsVisibility(currentlyVisible = false, scrollDelta = 4f))
+    }
+
+    @Test
+    fun `original source label never adds doubled parentheses`() {
+        assertEquals("Orijinal Habere Git (BBC)", formatOriginalSourceLabel("BBC"))
+        assertEquals("Orijinal Habere Git (BBC)", formatOriginalSourceLabel("(BBC)"))
+        assertEquals("Orijinal Habere Git", formatOriginalSourceLabel("  "))
+    }
+
+    @Test
+    fun `selected notification category relies on fill instead of a second outline`() {
+        assertFalse(shouldOutlineNotificationCategory(isSelected = true))
+        assertTrue(shouldOutlineNotificationCategory(isSelected = false))
     }
 
     @Test
@@ -166,6 +200,78 @@ class UiPresentationRulesTest {
             BackNavigationAction.EXIT,
             resolveBackNavigation(hasSelectedArticle = false, selectedTab = 0, searchQuery = ""),
         )
+    }
+
+    @Test
+    fun `missing article images use a compact placeholder instead of a full media frame`() {
+        assertEquals(16f / 9f, newsImageAspectRatio("https://example.com/image.jpg"))
+        assertEquals(3f, newsImageAspectRatio(null))
+        assertEquals(3f, newsImageAspectRatio("  "))
+    }
+
+    @Test
+    fun `news layouts reserve a media frame only for real image urls`() {
+        assertTrue(shouldShowArticleImage("https://example.com/image.jpg"))
+        assertFalse(shouldShowArticleImage(null))
+        assertFalse(shouldShowArticleImage("  "))
+    }
+
+    @Test
+    fun `article video accepts direct streams and rejects web pages`() {
+        assertEquals(
+            "https://cdn.example.com/news/video.mp4",
+            safePlayableVideoUrl("https://cdn.example.com/news/video.mp4"),
+        )
+        assertEquals(
+            "https://cdn.example.com/news/master.m3u8?token=abc",
+            safePlayableVideoUrl("https://cdn.example.com/news/master.m3u8?token=abc"),
+        )
+        assertEquals(null, safePlayableVideoUrl("https://youtube.com/watch?v=123"))
+        assertEquals(null, safePlayableVideoUrl("https://example.com/news/story"))
+        assertTrue(shouldShowArticleVideo("https://cdn.example.com/news/clip.webm"))
+        assertFalse(shouldShowArticleVideo(null))
+    }
+
+    @Test
+    fun `article links only allow web schemes`() {
+        assertEquals("https://example.com/news", safeHttpUrl("https://example.com/news"))
+        assertEquals("http://example.com/news", safeHttpUrl("http://example.com/news"))
+        assertEquals(null, safeHttpUrl("javascript:alert(1)"))
+        assertEquals(null, safeHttpUrl("not a url"))
+    }
+
+    @Test
+    fun `stored signed in state is invalidated when Firebase no longer has that user`() {
+        assertTrue(shouldInvalidateStoredSession(true, "user@example.com", false))
+        assertFalse(shouldInvalidateStoredSession(true, "user@example.com", true))
+        assertFalse(shouldInvalidateStoredSession(true, null, false))
+        assertFalse(shouldInvalidateStoredSession(false, "user@example.com", false))
+    }
+
+    @Test
+    fun `notification permission denial gives a useful settings path`() {
+        assertEquals(null, notificationPermissionFeedback(true))
+        assertEquals(
+            "Bildirim izni verilmedi. Daha sonra Android Ayarları > Uygulamalar > GündemAI bölümünden açabilirsiniz.",
+            notificationPermissionFeedback(false),
+        )
+    }
+
+    @Test
+    fun `offline banner only appears when cached articles remain visible`() {
+        assertTrue(shouldShowCachedOfflineHeader(articleCount = 12, syncError = "Bağlantı yok"))
+        assertFalse(shouldShowCachedOfflineHeader(articleCount = 0, syncError = "Bağlantı yok"))
+        assertFalse(shouldShowCachedOfflineHeader(articleCount = 12, syncError = null))
+    }
+
+    @Test
+    fun `notification dates are grouped into reader friendly sections`() {
+        val day = 24 * 60 * 60 * 1000L
+        val now = 10 * day + 12 * 60 * 60 * 1000L
+        val utc = TimeZone.getTimeZone("UTC")
+        assertEquals("Bugün", notificationSectionLabel(now - 1_000, now, utc))
+        assertEquals("Dün", notificationSectionLabel(now - day, now, utc))
+        assertEquals("Daha önce", notificationSectionLabel(now - 3 * day, now, utc))
     }
 
     private fun article(id: String, category: String, publishedAt: Long) = NewsArticle(

@@ -3,8 +3,97 @@ package com.example.ui.presentation
 import com.example.data.model.NewsArticle
 import com.example.data.model.FollowedTopic
 import com.example.data.model.Category
+import java.net.URI
+import java.util.Calendar
+import java.util.TimeZone
 
 fun shouldShowFeedControls(selectedTab: Int): Boolean = selectedTab == 0
+
+fun resolveFeedControlsVisibility(
+    currentlyVisible: Boolean,
+    scrollDelta: Float,
+    threshold: Float = 24f,
+): Boolean = when {
+    scrollDelta <= -threshold -> false
+    scrollDelta >= threshold -> true
+    else -> currentlyVisible
+}
+
+fun formatOriginalSourceLabel(sourceName: String): String {
+    val cleanSource = sourceName.trim().removeSurrounding("(", ")").trim()
+    return if (cleanSource.isBlank()) {
+        "Orijinal Habere Git"
+    } else {
+        "Orijinal Habere Git ($cleanSource)"
+    }
+}
+
+fun shouldOutlineNotificationCategory(isSelected: Boolean): Boolean = !isSelected
+
+fun newsImageAspectRatio(imageUrl: String?): Float =
+    if (imageUrl.isNullOrBlank()) 3f else 16f / 9f
+
+fun shouldShowArticleImage(imageUrl: String?): Boolean = !imageUrl.isNullOrBlank()
+
+fun safePlayableVideoUrl(value: String?): String? = runCatching {
+    val trimmed = value?.trim().orEmpty()
+    val uri = URI(trimmed)
+    val path = uri.path.orEmpty().lowercase()
+    trimmed.takeIf {
+        (uri.scheme.equals("https", ignoreCase = true) ||
+            uri.scheme.equals("http", ignoreCase = true)) &&
+            !uri.host.isNullOrBlank() &&
+            listOf(".mp4", ".m3u8", ".webm", ".mov").any(path::endsWith)
+    }
+}.getOrNull()
+
+fun shouldShowArticleVideo(videoUrl: String?): Boolean = safePlayableVideoUrl(videoUrl) != null
+
+fun safeHttpUrl(value: String): String? = runCatching {
+    val uri = URI(value.trim())
+    value.trim().takeIf {
+        uri.scheme.equals("https", ignoreCase = true) ||
+            uri.scheme.equals("http", ignoreCase = true)
+    }?.takeIf { !uri.host.isNullOrBlank() }
+}.getOrNull()
+
+fun shouldInvalidateStoredSession(
+    authCompleted: Boolean,
+    storedEmail: String?,
+    firebaseUserPresent: Boolean,
+): Boolean = authCompleted && !storedEmail.isNullOrBlank() && !firebaseUserPresent
+
+fun notificationPermissionFeedback(granted: Boolean): String? =
+    if (granted) {
+        null
+    } else {
+        "Bildirim izni verilmedi. Daha sonra Android Ayarları > Uygulamalar > GündemAI bölümünden açabilirsiniz."
+    }
+
+fun shouldShowCachedOfflineHeader(articleCount: Int, syncError: String?): Boolean =
+    articleCount > 0 && !syncError.isNullOrBlank()
+
+fun notificationSectionLabel(
+    timestamp: Long,
+    now: Long = System.currentTimeMillis(),
+    timeZone: TimeZone = TimeZone.getDefault(),
+): String {
+    val todayStart = Calendar.getInstance(timeZone).apply {
+        timeInMillis = now
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    val yesterdayStart = (todayStart.clone() as Calendar).apply {
+        add(Calendar.DAY_OF_YEAR, -1)
+    }
+    return when {
+        timestamp >= todayStart.timeInMillis -> "Bugün"
+        timestamp >= yesterdayStart.timeInMillis -> "Dün"
+        else -> "Daha önce"
+    }
+}
 
 fun normalizeSubmittedSearchQuery(query: String): String? =
     query.trim().takeIf { it.length >= 2 }

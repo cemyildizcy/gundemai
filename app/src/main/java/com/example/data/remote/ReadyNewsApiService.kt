@@ -1,6 +1,8 @@
 package com.example.data.remote
 
 import com.example.data.model.NewsArticle
+import com.example.data.model.DailyBrief
+import com.example.data.model.DailyBriefItem
 import com.example.data.model.SourceTimelineItem
 import com.example.util.DateUtils
 import com.squareup.moshi.JsonClass
@@ -33,7 +35,27 @@ data class BackendDiscoveryDto(
 data class ReadyNewsResponse(
     val articles: List<ReadyNewsDto>,
     val sharedAnalysis: Boolean,
-    val generatedAt: Long
+    val generatedAt: Long,
+    val dailyBrief: DailyBriefDto? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class DailyBriefDto(
+    val dateKey: String,
+    val title: String,
+    val summary: String,
+    val items: List<DailyBriefItemDto>,
+    val generatedAt: Long,
+    val shared: Boolean,
+)
+
+@JsonClass(generateAdapter = true)
+data class DailyBriefItemDto(
+    val articleId: String,
+    val title: String,
+    val summary: String,
+    val category: String,
+    val publishedAt: Long,
 )
 
 @JsonClass(generateAdapter = true)
@@ -52,6 +74,7 @@ data class ReadyNewsDto(
     val summary: String,
     val category: String,
     val imageUrl: String? = null,
+    val videoUrl: String? = null,
     val sourceName: String,
     val sourceUrl: String,
     val sourceCount: Int,
@@ -127,6 +150,7 @@ fun ReadyNewsDto.toEntity(isBookmarked: Boolean = false): NewsArticle {
         summary = summary.trim(),
         category = ServerCategory.toDisplayName(category),
         imageUrl = sanitizeServerImageUrl(imageUrl),
+        videoUrl = sanitizeServerVideoUrl(videoUrl),
         sourceName = sourceName,
         sourceUrl = sourceUrl,
         publishedAt = publishedAt,
@@ -149,6 +173,33 @@ fun ReadyNewsDto.toEntity(isBookmarked: Boolean = false): NewsArticle {
     )
 }
 
+fun DailyBriefDto.toModel(): DailyBrief? {
+    if (!shared || dateKey.isBlank() || title.isBlank() || summary.isBlank()) return null
+    val validItems = items
+        .asSequence()
+        .filter { it.articleId.isNotBlank() && it.title.isNotBlank() && it.summary.isNotBlank() }
+        .distinctBy { it.articleId }
+        .take(5)
+        .map { item ->
+            DailyBriefItem(
+                articleId = item.articleId,
+                title = item.title.trim(),
+                summary = item.summary.trim(),
+                category = ServerCategory.toDisplayName(item.category),
+                publishedAt = item.publishedAt,
+            )
+        }
+        .toList()
+    if (validItems.size < 3) return null
+    return DailyBrief(
+        dateKey = dateKey,
+        title = title.trim(),
+        summary = summary.trim(),
+        items = validItems,
+        generatedAt = generatedAt,
+    )
+}
+
 internal fun sanitizeServerImageUrl(rawUrl: String?): String? {
     val value = rawUrl?.trim().takeUnless { it.isNullOrEmpty() } ?: return null
     val uri = runCatching { URI(value) }.getOrNull() ?: return null
@@ -165,4 +216,14 @@ internal fun sanitizeServerImageUrl(rawUrl: String?): String? {
             (host == "t.me" && path.startsWith("/s/"))
 
     return value.takeUnless { isFeedEndpoint }
+}
+
+internal fun sanitizeServerVideoUrl(rawUrl: String?): String? {
+    val value = rawUrl?.trim().takeUnless { it.isNullOrEmpty() } ?: return null
+    val uri = runCatching { URI(value) }.getOrNull() ?: return null
+    if (uri.scheme !in setOf("http", "https") || uri.host.isNullOrBlank()) return null
+    val path = uri.path.orEmpty().lowercase()
+    return value.takeIf { candidate ->
+        listOf(".mp4", ".m3u8", ".webm", ".mov").any(path::endsWith) && candidate.isNotBlank()
+    }
 }

@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.auth.AuthRepository
 import com.example.data.auth.AuthResult
+import com.example.data.auth.authErrorMessage
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.example.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -103,5 +106,17 @@ class UserAuthAndGuestFlowTest {
 
         assertEquals(setOf("Teknoloji", "Ekonomi"), userPrefs.followedCategories.first())
         assertEquals(setOf("Teknoloji"), userPrefs.notificationCategories.first())
+    }
+
+    @Test
+    fun `firebase auth errors are mapped by exception type instead of localized message text`() {
+        assertEquals(
+            "E-posta veya şifre hatalı.",
+            authErrorMessage(FirebaseAuthInvalidCredentialsException("ERROR_INVALID_CREDENTIAL", "localized")),
+        )
+        assertEquals(
+            "Giriş servisine ulaşılamadı. İnternet bağlantınızı kontrol edin.",
+            authErrorMessage(FirebaseNetworkException("localized")),
+        )
     }
 }

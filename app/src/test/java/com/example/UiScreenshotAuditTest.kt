@@ -4,10 +4,16 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import com.example.data.model.DailyBrief
+import com.example.data.model.DailyBriefItem
 import com.example.data.model.NewsArticle
 import com.example.data.auth.AuthResult
 import com.example.ui.screens.AuthScreen
+import com.example.ui.screens.DetailScreen
+import com.example.ui.screens.BookmarksScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.NotificationsScreen
 import com.example.ui.screens.ProfileScreen
@@ -36,6 +42,7 @@ class PhoneUiScreenshotAuditTest {
             GundemAITheme(darkTheme = false) {
                 HomeScreen(
                     articles = sampleArticles(),
+                    dailyBrief = sampleDailyBrief(),
                     isRefreshing = false,
                     isProUser = true,
                     onRefresh = {},
@@ -46,6 +53,58 @@ class PhoneUiScreenshotAuditTest {
         }
         composeRule.onRoot().captureRoboImage(
             filePath = "build/reports/ui-audit/phone-home-light.png",
+        )
+    }
+
+    @Test
+    fun phoneDetailLight() {
+        composeRule.setContent {
+            GundemAITheme(darkTheme = false) {
+                DetailScreen(
+                    article = sampleArticles()[1],
+                    onBackClick = {},
+                    onBookmarkToggle = { _, _ -> },
+                    isProUser = true,
+                )
+            }
+        }
+        composeRule.onRoot().captureRoboImage(
+            filePath = "build/reports/ui-audit/phone-detail-light.png",
+        )
+    }
+
+    @Test
+    fun emptyBookmarksActionReturnsToNewsFeed() {
+        var browseRequested = false
+        composeRule.setContent {
+            GundemAITheme(darkTheme = false) {
+                BookmarksScreen(
+                    bookmarkedArticles = emptyList(),
+                    onArticleClick = {},
+                    onBookmarkToggle = { _, _ -> },
+                    onBrowseNews = { browseRequested = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Gündeme göz at").performClick()
+        assertTrue(browseRequested)
+    }
+
+    @Test
+    fun phoneEmptyBookmarksDark() {
+        composeRule.setContent {
+            GundemAITheme(darkTheme = true) {
+                BookmarksScreen(
+                    bookmarkedArticles = emptyList(),
+                    onArticleClick = {},
+                    onBookmarkToggle = { _, _ -> },
+                    onBrowseNews = {},
+                )
+            }
+        }
+        composeRule.onRoot().captureRoboImage(
+            filePath = "build/reports/ui-audit/phone-bookmarks-empty-dark.png",
         )
     }
 
@@ -190,6 +249,8 @@ private fun sampleArticles() = listOf(
         id = "technology",
         title = "Yapay zekâ alanında yeni araştırma sonuçları yayımlandı",
         category = "Teknoloji",
+        imageUrl = "https://cdn.example.com/news/technology.jpg",
+        videoUrl = "https://cdn.example.com/news/technology.m3u8",
     ),
     sampleArticle(
         id = "economy",
@@ -198,16 +259,50 @@ private fun sampleArticles() = listOf(
     ),
 )
 
+private fun sampleDailyBrief() = DailyBrief(
+    dateKey = "2026-07-30",
+    title = "Bugünün Gündemi",
+    summary = "Günün en kritik gelişmeleri, doğrulanmış haberlerden seçilerek kısa ve anlaşılır biçimde özetlendi.",
+    items = listOf(
+        DailyBriefItem(
+            articleId = "breaking",
+            title = "Türkiye gündemindeki önemli gelişme açıklandı",
+            summary = "Kararın geniş bir kitleyi ilgilendiren doğrudan etkileri bulunuyor.",
+            category = "Türkiye",
+            publishedAt = 3L,
+        ),
+        DailyBriefItem(
+            articleId = "technology",
+            title = "Yeni teknoloji yatırımı duyuruldu",
+            summary = "Yatırım, teknoloji ekosistemindeki üretim kapasitesini etkileyebilir.",
+            category = "Teknoloji",
+            publishedAt = 2L,
+        ),
+        DailyBriefItem(
+            articleId = "economy",
+            title = "Ekonomi verileri güncellendi",
+            summary = "Açıklanan veriler piyasa beklentileri açısından günün öne çıkan başlıkları arasında.",
+            category = "Ekonomi",
+            publishedAt = 1L,
+        ),
+    ),
+    generatedAt = 4L,
+)
+
 private fun sampleArticle(
     id: String,
     title: String,
     category: String,
     isBreaking: Boolean = false,
+    imageUrl: String? = null,
+    videoUrl: String? = null,
 ) = NewsArticle(
     id = id,
     title = title,
     summary = "Haberin temel ayrıntıları kaynak metinlerine dayanarak özetlendi.",
     category = category,
+    imageUrl = imageUrl,
+    videoUrl = videoUrl,
     sourceName = "Örnek Haber Kaynağı",
     sourceUrl = "https://example.com/news/$id",
     publishedAt = System.currentTimeMillis() - 60_000,

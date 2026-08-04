@@ -10,10 +10,14 @@ import com.example.data.model.UserNotification
 import com.example.data.remote.ReadyNewsApiService
 import com.example.data.remote.BackendDiscoveryApiService
 import com.example.data.remote.toEntity
+import com.example.data.remote.toModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -37,6 +41,9 @@ class NewsRepository(
 ) {
     private val syncMutex = Mutex()
     @Volatile private var lastFetchAt = 0L
+    private val _dailyBrief = MutableStateFlow<com.example.data.model.DailyBrief?>(null)
+
+    val dailyBrief: StateFlow<com.example.data.model.DailyBrief?> = _dailyBrief.asStateFlow()
 
     fun getAllArticles(): Flow<List<NewsArticle>> = newsDao.getAllArticles()
 
@@ -82,6 +89,7 @@ class NewsRepository(
     suspend fun clearLocalCache() = withContext(Dispatchers.IO) {
         newsDao.deleteUnbookmarkedArticles()
         newsDao.clearSearchHistory()
+        _dailyBrief.value = null
         lastFetchAt = 0L
     }
 
@@ -89,6 +97,7 @@ class NewsRepository(
         newsDao.clearAllArticles()
         newsDao.clearAllNotifications()
         newsDao.clearSearchHistory()
+        _dailyBrief.value = null
         lastFetchAt = 0L
     }
 
@@ -117,6 +126,7 @@ class NewsRepository(
                     readyNewsApi.getReadyNews(limit = MAX_READY_ARTICLES)
                 }
                 check(response.sharedAnalysis) { "Sunucu ortak analiz akışı döndürmedi" }
+                _dailyBrief.value = response.dailyBrief?.toModel()
 
                 val existingIds = newsDao.getAllArticleIdsSync().toSet()
                 val bookmarkedIds = newsDao.getBookmarkedArticleIdsSync().toSet()

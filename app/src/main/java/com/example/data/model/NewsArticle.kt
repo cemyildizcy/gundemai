@@ -10,6 +10,7 @@ data class NewsArticle(
     val summary: String,
     val category: String,
     val imageUrl: String? = null,
+    val videoUrl: String? = null,
     val sourceName: String,
     val sourceUrl: String,
     val publishedAt: Long,

@@ -2,7 +2,13 @@ package com.example.data.auth
 
 import android.content.Context
 import com.example.data.repository.UserPreferencesRepository
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.tasks.await
@@ -22,6 +28,8 @@ class AuthRepository(
     } catch (_: Exception) {
         null
     }
+
+    fun hasCurrentFirebaseUser(): Boolean = firebaseAuth?.currentUser != null
 
     suspend fun signUpWithEmail(email: String, password: String, name: String): AuthResult {
         if (!isValidEmail(email)) return AuthResult.Error("Lütfen geçerli bir e-posta adresi girin.")
@@ -114,9 +122,20 @@ class AuthRepository(
         "Giriş servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin."
     )
 
-    private fun authErrorMessage(error: Exception): String = when {
-        error.message?.contains("password", ignoreCase = true) == true -> "E-posta veya şifre hatalı."
-        error.message?.contains("network", ignoreCase = true) == true -> "Giriş servisine ulaşılamadı. İnternet bağlantınızı kontrol edin."
-        else -> "Giriş işlemi tamamlanamadı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
-    }
+}
+
+internal fun authErrorMessage(error: Exception): String = when (error) {
+    is FirebaseAuthWeakPasswordException ->
+        "Şifreniz en az 6 karakter olmalı ve kolay tahmin edilmemelidir."
+    is FirebaseAuthUserCollisionException ->
+        "Bu e-posta adresiyle daha önce hesap oluşturulmuş."
+    is FirebaseAuthInvalidCredentialsException,
+    is FirebaseAuthInvalidUserException ->
+        "E-posta veya şifre hatalı."
+    is FirebaseNetworkException ->
+        "Giriş servisine ulaşılamadı. İnternet bağlantınızı kontrol edin."
+    is FirebaseTooManyRequestsException ->
+        "Çok fazla giriş denemesi yapıldı. Lütfen bir süre sonra tekrar deneyin."
+    else ->
+        "Giriş işlemi tamamlanamadı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
 }

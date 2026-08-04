@@ -76,10 +76,10 @@ fun SourceTimelineView(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer
                     ),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(RoundedCornerShape(18.dp)),
                     onClick = { onSourceClick(item.url) }
                 ) {
                     Row(

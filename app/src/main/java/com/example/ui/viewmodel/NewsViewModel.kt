@@ -12,6 +12,7 @@ import com.example.ui.presentation.presentArticles
 import com.example.ui.presentation.resolveOpenedSearch
 import com.example.ui.presentation.sanitizeInterestCategories
 import com.example.ui.presentation.sanitizeNotificationCategories
+import com.example.ui.presentation.shouldInvalidateStoredSession
 import com.example.worker.NewsBackgroundWorker
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -249,6 +250,8 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
         presentArticles(articles, category, query, selectedCategories, selectedTopics)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val dailyBrief: StateFlow<DailyBrief?> = repository.dailyBrief
+
     // Bookmarks Flow
     val bookmarkedArticles: StateFlow<List<NewsArticle>> = repository.getBookmarkedArticles()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -267,6 +270,19 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
+        viewModelScope.launch {
+            val completed = userPrefs.authCompleted.first()
+            val storedEmail = userPrefs.userEmail.first()
+            if (shouldInvalidateStoredSession(
+                    authCompleted = completed,
+                    storedEmail = storedEmail,
+                    firebaseUserPresent = authRepository.hasCurrentFirebaseUser(),
+                )
+            ) {
+                authRepository.logout()
+                userPrefs.setAuthCompleted(false)
+            }
+        }
         viewModelScope.launch {
             notificationCategories.collectLatest { categories ->
                 runCatching { NotificationTopicManager.syncSubscriptions(categories) }

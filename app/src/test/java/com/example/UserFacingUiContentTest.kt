@@ -1,19 +1,27 @@
 package com.example
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import com.example.data.auth.AuthResult
+import com.example.data.model.DailyBrief
+import com.example.data.model.DailyBriefItem
 import com.example.data.model.NewsArticle
 import com.example.data.billing.BillingConnectionState
 import com.example.data.billing.BillingPurchaseState
 import com.example.ui.components.PlayBillingPaywallSheet
 import com.example.ui.screens.BookmarksScreen
+import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.NotificationsScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.ExploreScreen
 import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.DetailScreen
 import com.example.ui.theme.GundemAITheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -23,6 +31,27 @@ import org.robolectric.annotation.Config
 class UserFacingUiContentTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun authModeControlsStaySeparatedOnCompactLayouts() {
+        composeRule.setContent {
+            GundemAITheme(darkTheme = false) {
+                AuthScreen(
+                    onAuthSuccess = { _, _ -> },
+                    onGuestContinue = {},
+                    onEmailSignUp = { _, _, _ -> AuthResult.Error("test") },
+                    onEmailSignIn = { _, _ -> AuthResult.Error("test") },
+                    onGoogleSignIn = { AuthResult.Error("test") },
+                )
+            }
+        }
+
+        val signInBounds = composeRule.onNodeWithTag("auth_mode_sign_in")
+            .fetchSemanticsNode().boundsInRoot
+        val registerBounds = composeRule.onNodeWithTag("auth_mode_register")
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue(signInBounds.right <= registerBounds.left)
+    }
 
     @Test
     fun notificationScreenUsesReaderLanguageInsteadOfImplementationDetails() {
@@ -160,6 +189,80 @@ class UserFacingUiContentTest {
         composeRule.onNodeWithText("Bilim kategorisinde henüz haber yok.", substring = true)
             .assertExists()
         composeRule.onNodeWithText("Tüm haberleri göster").assertExists()
+    }
+
+    @Test
+    fun homeShowsTheSameSharedDailyBriefAboveTheFeed() {
+        composeRule.setContent {
+            GundemAITheme(darkTheme = false) {
+                HomeScreen(
+                    articles = listOf(bookmarkedArticle()),
+                    dailyBrief = DailyBrief(
+                        dateKey = "2026-07-30",
+                        title = "Bugünün Gündemi",
+                        summary = "Bugünün en kritik gelişmeleri kısa ve ortak bir özet halinde sunuluyor.",
+                        items = listOf(
+                            DailyBriefItem("news-1", "Birinci gelişme", "Birinci kısa özet.", "Dünya", 3L),
+                            DailyBriefItem("news-2", "İkinci gelişme", "İkinci kısa özet.", "Ekonomi", 2L),
+                            DailyBriefItem("news-3", "Üçüncü gelişme", "Üçüncü kısa özet.", "Teknoloji", 1L),
+                        ),
+                        generatedAt = 4L,
+                    ),
+                    isRefreshing = false,
+                    selectedCategory = "Tümü",
+                    onRefresh = {},
+                    onArticleClick = {},
+                    onBookmarkToggle = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Bugünün Gündemi").assertExists()
+        composeRule.onNodeWithText("Herkes için ortak yapay zekâ özeti").assertExists()
+        composeRule.onNodeWithText("Birinci gelişme").assertExists()
+    }
+
+    @Test
+    fun homeFeedKeepsCardsHeadlineFirstAndMovesActionsToDetail() {
+        val article = bookmarkedArticle()
+        composeRule.setContent {
+            GundemAITheme(darkTheme = false) {
+                HomeScreen(
+                    articles = listOf(article),
+                    isRefreshing = false,
+                    selectedCategory = "Tümü",
+                    onRefresh = {},
+                    onArticleClick = {},
+                    onBookmarkToggle = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(article.title).assertExists()
+        composeRule.onNodeWithText(article.summary).assertDoesNotExist()
+        composeRule.onNodeWithText(article.whyImportant).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Haberi kaydet").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Kaydı kaldır").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Haberi paylaş").assertDoesNotExist()
+    }
+
+    @Test
+    fun articleDetailKeepsPlayableVideoInsideTheApp() {
+        composeRule.setContent {
+            GundemAITheme(darkTheme = false) {
+                DetailScreen(
+                    article = bookmarkedArticle().copy(
+                        videoUrl = "https://cdn.example.com/news/video.mp4",
+                    ),
+                    onBackClick = {},
+                    onBookmarkToggle = { _, _ -> },
+                    isProUser = true,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Haber videosu").assertExists()
+        composeRule.onNodeWithTag("article_video_player").assertExists()
     }
 
     private fun bookmarkedArticle() = NewsArticle(

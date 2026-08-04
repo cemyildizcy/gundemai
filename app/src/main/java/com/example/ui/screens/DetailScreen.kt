@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -32,9 +32,16 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.NewsArticle
 import com.example.ui.components.AdMobTestAdaptiveBanner
 import com.example.ui.components.ArticleImage
+import com.example.ui.components.ArticleVideoPlayer
 import com.example.util.DateUtils
 import com.example.ui.components.SourceTimelineView
 import com.example.ui.components.VerificationBadge
+import com.example.ui.presentation.safeHttpUrl
+import com.example.ui.presentation.shouldShowArticleImage
+import com.example.ui.presentation.formatOriginalSourceLabel
+import com.example.ui.components.liquidGlassBackground
+import com.example.ui.components.GlassIconButton
+import com.example.ui.theme.BrandTeal
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 
@@ -75,7 +82,8 @@ fun DetailScreen(
     val contradictions = parseJsonList(article.contradictionsJson)
 
     Scaffold(
-        containerColor = bgColor,
+        containerColor = Color.Transparent,
+        modifier = modifier.liquidGlassBackground(),
         topBar = {
             TopAppBar(
                 title = {
@@ -85,95 +93,86 @@ fun DetailScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(accentBlue)
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(BrandTeal.copy(alpha = 0.14f))
+                                .padding(horizontal = 12.dp, vertical = 7.dp)
                         ) {
                             Text(
-                                text = article.category.uppercase(),
-                                fontSize = 10.sp,
+                                text = article.category,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = BrandTeal
                             )
                         }
                     }
                 },
                 navigationIcon = {
-                    IconButton(
+                    GlassIconButton(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Geri",
                         onClick = onBackClick,
                         modifier = Modifier.testTag("detail_back_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Geri",
-                            tint = primaryTextColor
-                        )
-                    }
+                    )
                 },
                 actions = {
-                    IconButton(onClick = { onBookmarkToggle(article.id, article.isBookmarked) }) {
-                        Icon(
-                            imageVector = if (article.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                            contentDescription = "Kaydet",
-                            tint = if (article.isBookmarked) accentBlue else secondaryTextColor
-                        )
-                    }
-                    IconButton(onClick = {
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, "${article.title}\n\nGündemAI ile oku: ${article.sourceUrl}")
-                            type = "text/plain"
-                        }
-                        context.startActivity(Intent.createChooser(sendIntent, "Haberi Paylaş"))
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Paylaş",
-                            tint = secondaryTextColor
-                        )
-                    }
+                    GlassIconButton(
+                        imageVector = if (article.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                        contentDescription = "Kaydet",
+                        active = article.isBookmarked,
+                        onClick = { onBookmarkToggle(article.id, article.isBookmarked) },
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    GlassIconButton(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Paylaş",
+                        onClick = {
+                            val sendIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, "${article.title}\n\nGündemAI ile oku: ${article.sourceUrl}")
+                                type = "text/plain"
+                            }
+                            context.startActivity(Intent.createChooser(sendIntent, "Haberi Paylaş"))
+                        },
+                    )
+                    Spacer(Modifier.width(8.dp))
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         bottomBar = {
-            Surface(
-                color = bgColor,
-                tonalElevation = 8.dp,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(width = (0.5).dp, color = cardBorderColor)
-                    .padding(12.dp)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(article.sourceUrl))
-                            context.startActivity(intent)
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .testTag("open_original_source_button")
+                Button(
+                    onClick = {
+                        openSourceUrl(context, article.sourceUrl)
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .testTag("open_original_source_button")
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, tint = Color.White)
-                            Text(
-                                text = "Orijinal Habere Git (${article.sourceName})",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 14.sp
-                            )
-                        }
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, tint = Color.White)
+                        Text(
+                            text = formatOriginalSourceLabel(article.sourceName),
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
                     }
-
-                    AdMobTestAdaptiveBanner(isProUser = isProUser)
                 }
+
+                AdMobTestAdaptiveBanner(isProUser = isProUser)
             }
         }
     ) { paddingValues ->
@@ -187,32 +186,26 @@ fun DetailScreen(
         ) {
             // --- 1. HERO MEDIA & HEADLINE GROUP ---
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(210.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
-                ) {
-                    ArticleImage(
-                        imageUrl = article.imageUrl,
-                        title = article.title,
-                        category = article.category,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                if (shouldShowArticleImage(article.imageUrl)) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Black.copy(alpha = 0.05f),
-                                        Color.Transparent,
-                                        Color.Black.copy(alpha = 0.4f)
-                                    )
-                                )
-                            )
-                    )
+                            .fillMaxWidth()
+                            .height(210.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
+                    ) {
+                        ArticleImage(
+                            imageUrl = article.imageUrl,
+                            title = article.title,
+                            category = article.category,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.16f))
+                        )
+                    }
                 }
 
                 Text(
@@ -261,13 +254,22 @@ fun DetailScreen(
                 }
             }
 
+            article.videoUrl?.let { videoUrl ->
+                ArticleVideoPlayer(
+                    videoUrl = videoUrl,
+                    posterUrl = article.imageUrl,
+                    articleTitle = article.title,
+                    category = article.category,
+                )
+            }
+
             // --- 3. MODULAR TAB SWITCHER ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(cardBgColor)
-                    .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                    .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -337,10 +339,10 @@ fun DetailScreen(
                     // AI Disclaimer
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -362,118 +364,71 @@ fun DetailScreen(
                         }
                     }
 
-                    // 1. Ne Oldu? (Kısa Özet)
                     AnalysisSectionCard(
-                        title = "Ne Oldu?",
-                        icon = Icons.Default.Info,
-                        iconTint = accentBlue
+                        title = "Haber Analizi",
+                        icon = Icons.Default.AutoAwesome,
+                        iconTint = BrandTeal,
                     ) {
-                        Text(
-                            text = article.whatHappened.ifBlank { article.summary },
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 22.sp
-                        )
-                    }
-
-                    // 2. Neden Önemli?
-                    AnalysisSectionCard(
-                        title = "Neden Önemli?",
-                        icon = Icons.Default.Lightbulb,
-                        iconTint = Color(0xFFF59E0B)
-                    ) {
-                        Text(
-                            text = article.whyImportant.ifBlank { "Bu gelişme bölgesel ve küresel ölçekte yakından takip edilmektedir." },
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 22.sp
-                        )
-                    }
-
-                    // 3. Kesin Olarak Bilinenler
-                    if (verifiedFacts.isNotEmpty()) {
-                        AnalysisSectionCard(
-                            title = "✅ Kesin Olarak Bilinenler",
-                            icon = Icons.Default.CheckCircle,
-                            iconTint = Color(0xFF10B981)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                verifiedFacts.forEach { fact ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("•", fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
-                                        Text(fact, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 4. Doğrulanmamış İddialar
-                    if (unverifiedClaims.isNotEmpty()) {
-                        AnalysisSectionCard(
-                            title = "❓ Doğrulanmamış İddialar",
-                            icon = Icons.Default.Help,
-                            iconTint = Color(0xFFEC4899)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                unverifiedClaims.forEach { claim ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("•", fontWeight = FontWeight.Bold, color = Color(0xFFEC4899))
-                                        Text(claim, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 5. Haberde Eksik Bilgiler
-                    if (article.missingInformation.isNotBlank()) {
-                        AnalysisSectionCard(
-                            title = "Haberde Hangi Bilgiler Eksik?",
-                            icon = Icons.Default.Search,
-                            iconTint = MaterialTheme.colorScheme.tertiary
-                        ) {
-                            Text(
-                                text = article.missingInformation,
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                lineHeight = 19.sp
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            CompactAnalysisSection(
+                                title = "Ne oldu?",
+                                icon = Icons.Default.Info,
+                                iconTint = accentBlue,
+                                body = article.whatHappened.ifBlank { article.summary },
                             )
-                        }
-                    }
-
-                    // 6. Olası Etkiler
-                    if (possibleImpacts.isNotEmpty()) {
-                        AnalysisSectionCard(
-                            title = "📈 Olası Etkiler",
-                            icon = Icons.Default.TrendingUp,
-                            iconTint = MaterialTheme.colorScheme.secondary
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                possibleImpacts.forEach { impact ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("•", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
-                                        Text(impact, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
-                                    }
-                                }
+                            CompactAnalysisSection(
+                                title = "Neden önemli?",
+                                icon = Icons.Default.Lightbulb,
+                                iconTint = BrandTeal,
+                                body = article.whyImportant.ifBlank {
+                                    "Bu gelişme bölgesel ve küresel ölçekte yakından takip edilmektedir."
+                                },
+                                showDivider = true,
+                            )
+                            if (verifiedFacts.isNotEmpty()) {
+                                CompactAnalysisSection(
+                                    title = "Kesin olarak bilinenler",
+                                    icon = Icons.Default.CheckCircle,
+                                    iconTint = Color(0xFF10B981),
+                                    items = verifiedFacts,
+                                    showDivider = true,
+                                )
                             }
-                        }
-                    }
-
-                    // 7. Çelişkiler
-                    if (contradictions.isNotEmpty()) {
-                        AnalysisSectionCard(
-                            title = "Kaynaklar Arasındaki Çelişkiler",
-                            icon = Icons.Default.Warning,
-                            iconTint = Color(0xFFEF4444)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                contradictions.forEach { item ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("•", fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
-                                        Text(item, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 19.sp)
-                                    }
-                                }
+                            if (unverifiedClaims.isNotEmpty()) {
+                                CompactAnalysisSection(
+                                    title = "Doğrulanmamış iddialar",
+                                    icon = Icons.Default.Help,
+                                    iconTint = MaterialTheme.colorScheme.tertiary,
+                                    items = unverifiedClaims,
+                                    showDivider = true,
+                                )
+                            }
+                            if (article.missingInformation.isNotBlank()) {
+                                CompactAnalysisSection(
+                                    title = "Eksik bilgiler",
+                                    icon = Icons.Default.Search,
+                                    iconTint = MaterialTheme.colorScheme.tertiary,
+                                    body = article.missingInformation,
+                                    showDivider = true,
+                                )
+                            }
+                            if (possibleImpacts.isNotEmpty()) {
+                                CompactAnalysisSection(
+                                    title = "Olası etkiler",
+                                    icon = Icons.Default.TrendingUp,
+                                    iconTint = BrandTeal,
+                                    items = possibleImpacts,
+                                    showDivider = true,
+                                )
+                            }
+                            if (contradictions.isNotEmpty()) {
+                                CompactAnalysisSection(
+                                    title = "Kaynaklar arasındaki çelişkiler",
+                                    icon = Icons.Default.Warning,
+                                    iconTint = MaterialTheme.colorScheme.error,
+                                    items = contradictions,
+                                    showDivider = true,
+                                )
                             }
                         }
                     }
@@ -484,10 +439,10 @@ fun DetailScreen(
                     // Clean Typography Article Reader Card
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                            .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
                     ) {
                         Column(
                             modifier = Modifier.padding(18.dp),
@@ -538,8 +493,7 @@ fun DetailScreen(
                     SourceTimelineView(
                         sourcesJson = article.sourcesJson,
                         onSourceClick = { url ->
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            context.startActivity(intent)
+                            openSourceUrl(context, url)
                         }
                     )
                 }
@@ -550,23 +504,43 @@ fun DetailScreen(
     }
 }
 
+private fun openSourceUrl(context: android.content.Context, value: String) {
+    val url = safeHttpUrl(value)
+    if (url == null) {
+        Toast.makeText(context, "Bu kaynak bağlantısı güvenli değil.", Toast.LENGTH_SHORT).show()
+        return
+    }
+    runCatching {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }.onFailure {
+        Toast.makeText(context, "Kaynak bağlantısı açılamadı.", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
 private fun AnalysisSectionCard(
     title: String,
     icon: ImageVector,
     iconTint: Color,
+    highlighted: Boolean = false,
     content: @Composable () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (highlighted) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.80f)
+            } else {
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+            }
+        ),
+        shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(18.dp))
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(18.dp)
             )
     ) {
         Column(
@@ -587,11 +561,61 @@ private fun AnalysisSectionCard(
                     text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             content()
+        }
+    }
+}
+
+@Composable
+private fun CompactAnalysisSection(
+    title: String,
+    icon: ImageVector,
+    iconTint: Color,
+    body: String? = null,
+    items: List<String> = emptyList(),
+    showDivider: Boolean = false,
+) {
+    if (showDivider) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+    body?.takeIf { it.isNotBlank() }?.let { value ->
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 21.sp,
+        )
+    }
+    items.forEach { item ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("•", fontWeight = FontWeight.Bold, color = iconTint)
+            Text(
+                text = item,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 19.sp,
+            )
         }
     }
 }

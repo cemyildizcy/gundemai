@@ -128,7 +128,7 @@ fun PlayBillingPaywallSheet(
 
                     Surface(
                         color = statusColor.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
                     ) {
                         Row(
@@ -189,7 +189,7 @@ fun PlayBillingPaywallSheet(
                         colors = CardDefaults.cardColors(
                             containerColor = if (isYearly) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .weight(1f)
                             .clickable(enabled = yearlyProduct != null) {
@@ -199,7 +199,7 @@ fun PlayBillingPaywallSheet(
                             .border(
                                 width = if (isYearly) 2.dp else 1.dp,
                                 color = if (isYearly) goldAccent else MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(18.dp)
                             )
                     ) {
                         Column(
@@ -208,15 +208,15 @@ fun PlayBillingPaywallSheet(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(goldAccent)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
-                                Text("YILLIK", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.Black)
+                                Text("YILLIK", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
                             }
 
                             Text("Yıllık Plan", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
-                            Text(yearlyProduct?.formattedPrice ?: "Kullanılamıyor", fontSize = 15.sp, fontWeight = FontWeight.Black, color = goldAccent)
+                            Text(yearlyProduct?.formattedPrice ?: "Kullanılamıyor", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = goldAccent)
                             Text(yearlyProduct?.description ?: "Yıllık plan şu anda kullanılamıyor", fontSize = 10.sp, color = secondaryTextColor, maxLines = 2)
                         }
                     }
@@ -227,7 +227,7 @@ fun PlayBillingPaywallSheet(
                         colors = CardDefaults.cardColors(
                             containerColor = if (isMonthly) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .weight(1f)
                             .clickable(enabled = monthlyProduct != null) {
@@ -237,7 +237,7 @@ fun PlayBillingPaywallSheet(
                             .border(
                                 width = if (isMonthly) 2.dp else 1.dp,
                                 color = if (isMonthly) accentBlue else MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(18.dp)
                             )
                     ) {
                         Column(
@@ -246,7 +246,7 @@ fun PlayBillingPaywallSheet(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(MaterialTheme.colorScheme.outlineVariant)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
@@ -254,7 +254,7 @@ fun PlayBillingPaywallSheet(
                             }
 
                             Text("Aylık Plan", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
-                            Text(monthlyProduct?.formattedPrice ?: "Kullanılamıyor", fontSize = 15.sp, fontWeight = FontWeight.Black, color = accentBlue)
+                            Text(monthlyProduct?.formattedPrice ?: "Kullanılamıyor", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = accentBlue)
                             Text(monthlyProduct?.description ?: "Aylık plan şu anda kullanılamıyor", fontSize = 10.sp, color = secondaryTextColor, maxLines = 2)
                         }
                     }
@@ -265,7 +265,7 @@ fun PlayBillingPaywallSheet(
                     is BillingPurchaseState.Processing -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -281,7 +281,7 @@ fun PlayBillingPaywallSheet(
                     is BillingPurchaseState.Success -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF064E3B)),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -297,7 +297,7 @@ fun PlayBillingPaywallSheet(
                     is BillingPurchaseState.UserCanceled -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -313,7 +313,7 @@ fun PlayBillingPaywallSheet(
                     is BillingPurchaseState.Error -> {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -331,7 +331,7 @@ fun PlayBillingPaywallSheet(
                                 Button(
                                     onClick = onResetPurchaseState,
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB91C1C)),
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RoundedCornerShape(18.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text("Yeniden Dene", fontSize = 11.sp, color = Color.White)
@@ -345,7 +345,7 @@ fun PlayBillingPaywallSheet(
                 if (userEmail.isNullOrBlank()) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -370,7 +370,7 @@ fun PlayBillingPaywallSheet(
                             onNavigateToAuth()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
@@ -399,7 +399,7 @@ fun PlayBillingPaywallSheet(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = goldAccent),
                         enabled = activity != null && selectedProduct != null && connectionState is BillingConnectionState.Connected,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(18.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)

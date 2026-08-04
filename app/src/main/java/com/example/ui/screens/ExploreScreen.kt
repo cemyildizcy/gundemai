@@ -25,6 +25,8 @@ import com.example.data.model.FollowedTopic
 import com.example.data.model.SearchHistoryItem
 import com.example.data.remote.RssFeedConfig
 import com.example.data.remote.TelegramConfig
+import com.example.ui.components.GlassSectionHeader
+import com.example.ui.components.liquidGlassBackground
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -47,7 +49,7 @@ fun ExploreScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(bgColor),
+            .liquidGlassBackground(),
     ) {
         LazyColumn(
             modifier = Modifier
@@ -59,19 +61,10 @@ fun ExploreScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Keşfet",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                    color = primaryTextColor,
-                )
-                Text(
-                    text = "İlgi alanlarını ve haber kaynaklarını düzenle.",
-                    fontSize = 13.sp,
-                    color = secondaryTextColor,
-                )
-            }
+            GlassSectionHeader(
+                title = "Keşfet",
+                subtitle = "İlgi alanlarını ve haber kaynaklarını düzenle.",
+            )
         }
 
         // --- 1. SON ARAMALAR (RECENT SEARCHES) ---
@@ -103,9 +96,9 @@ fun ExploreScreen(
                         recentSearches.take(8).forEach { search ->
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(cardBgColor)
-                                    .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                                    .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
                                     .clickable { onSearchTagClick(search.query) }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
@@ -135,11 +128,11 @@ fun ExploreScreen(
         // --- 2. POPÜLER KONULAR VE TAKİP LİSTESİ ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+                shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                    .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -178,12 +171,12 @@ fun ExploreScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(if (isFollowed) accentBlue else MaterialTheme.colorScheme.surfaceVariant)
                                     .border(
                                         1.dp,
                                         if (isFollowed) accentBlue else cardBorderColor,
-                                        RoundedCornerShape(8.dp)
+                                        RoundedCornerShape(18.dp)
                                     )
                                     .clickable { onTopicClick(topic.id) }
                                     .padding(horizontal = 12.dp, vertical = 7.dp)
@@ -230,11 +223,11 @@ fun ExploreScreen(
 
                 // Telegram Channels Card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                        .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -275,9 +268,9 @@ fun ExploreScreen(
                                 .forEach { channel ->
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(18.dp))
                                         .background(Color(0xFF0088CC).copy(alpha = 0.15f))
-                                        .border(1.dp, Color(0xFF0088CC).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                        .border(1.dp, Color(0xFF0088CC).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
                                         .clickable { onSearchTagClick(channel.displayName) }
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
@@ -316,11 +309,11 @@ fun ExploreScreen(
 
                 // National & Global RSS Feeds Card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                        .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -361,9 +354,9 @@ fun ExploreScreen(
                                 .forEach { source ->
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(18.dp))
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                                        .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
                                         .clickable { onSearchTagClick(source.name) }
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
@@ -406,10 +399,10 @@ fun ExploreScreen(
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),

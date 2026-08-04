@@ -16,4 +16,5 @@ internal fun shouldRequestBannerAds(
     isProUser: Boolean,
     adsEnabled: Boolean,
     canRequestAds: Boolean,
-): Boolean = !isProUser && adsEnabled && canRequestAds
+    remoteAdsEnabled: Boolean = true,
+): Boolean = !isProUser && adsEnabled && remoteAdsEnabled && canRequestAds

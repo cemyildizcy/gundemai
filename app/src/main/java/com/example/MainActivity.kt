@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
@@ -12,17 +13,26 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import com.example.data.ads.AdConsentManager
+import com.example.data.config.RemoteFeatureFlags
 import com.example.ui.components.GundemBottomBar
 import com.example.ui.components.GundemTopBar
+import com.example.ui.components.liquidGlassBackground
 import com.example.ui.presentation.shouldShowFeedControls
 import com.example.ui.presentation.BackNavigationAction
 import com.example.ui.presentation.resolveBackNavigation
+import com.example.ui.presentation.notificationPermissionFeedback
 import com.example.ui.screens.*
 import com.example.ui.theme.GundemAITheme
 import com.example.ui.viewmodel.NewsViewModel
@@ -31,11 +41,16 @@ class MainActivity : ComponentActivity() {
     private val viewModel: NewsViewModel by viewModels()
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { }
+    ) { granted ->
+        notificationPermissionFeedback(granted)?.let { message ->
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        RemoteFeatureFlags.initialize()
         AdConsentManager.gatherConsent(this)
 
         setContent {
@@ -50,6 +65,7 @@ class MainActivity : ComponentActivity() {
             val syncError by viewModel.syncError.collectAsStateWithLifecycle()
 
             val articles by viewModel.articlesFeed.collectAsStateWithLifecycle()
+            val dailyBrief by viewModel.dailyBrief.collectAsStateWithLifecycle()
             val bookmarkedArticles by viewModel.bookmarkedArticles.collectAsStateWithLifecycle()
             val notifications by viewModel.notifications.collectAsStateWithLifecycle()
             val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
@@ -68,6 +84,11 @@ class MainActivity : ComponentActivity() {
             val billingPurchaseState by viewModel.billingPurchaseState.collectAsStateWithLifecycle()
             val billingAvailableProducts by viewModel.billingAvailableProducts.collectAsStateWithLifecycle()
             val privacyOptionsRequired by AdConsentManager.privacyOptionsRequired.collectAsStateWithLifecycle()
+            var feedControlsVisible by remember { mutableStateOf(true) }
+
+            LaunchedEffect(selectedTab, selectedCategory, searchQuery) {
+                if (selectedTab == 0) feedControlsVisible = true
+            }
 
             GundemAITheme(darkTheme = darkThemeEnabled) {
                 val backNavigationAction = resolveBackNavigation(
@@ -121,9 +142,14 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     Scaffold(
-                        containerColor = MaterialTheme.colorScheme.background,
+                        containerColor = Color.Transparent,
+                        modifier = Modifier.liquidGlassBackground(),
                         topBar = {
-                            if (shouldShowFeedControls(selectedTab)) {
+                            AnimatedVisibility(
+                                visible = shouldShowFeedControls(selectedTab) && feedControlsVisible,
+                                enter = slideInVertically { -it } + fadeIn(),
+                                exit = slideOutVertically { -it } + fadeOut(),
+                            ) {
                                 GundemTopBar(
                                     selectedCategory = selectedCategory,
                                     onCategorySelected = { viewModel.selectCategory(it) },
@@ -146,6 +172,7 @@ class MainActivity : ComponentActivity() {
                         when (selectedTab) {
                             0 -> HomeScreen(
                                 articles = articles,
+                                dailyBrief = dailyBrief,
                                 isRefreshing = isRefreshing,
                                 syncError = syncError,
                                 isProUser = isProUser,
@@ -158,6 +185,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onArticleClick = { id -> viewModel.selectArticle(id) },
                                 onBookmarkToggle = { id, status -> viewModel.toggleBookmark(id, status) },
+                                feedControlsVisible = feedControlsVisible,
+                                onFeedControlsVisibilityChange = { feedControlsVisible = it },
                                 modifier = modifier
                             )
                             1 -> ExploreScreen(
@@ -173,6 +202,7 @@ class MainActivity : ComponentActivity() {
                                 bookmarkedArticles = bookmarkedArticles,
                                 onArticleClick = { id -> viewModel.selectArticle(id) },
                                 onBookmarkToggle = { id, status -> viewModel.toggleBookmark(id, status) },
+                                onBrowseNews = { viewModel.selectTab(0) },
                                 modifier = modifier
                             )
                             3 -> NotificationsScreen(

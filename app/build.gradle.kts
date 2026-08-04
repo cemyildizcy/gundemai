@@ -36,6 +36,7 @@ plugins {
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.secrets)
   alias(libs.plugins.google.services)
+  alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -46,8 +47,8 @@ android {
     applicationId = "com.gundemai.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 109
-    versionName = "1.0.9"
+    versionCode = 112
+    versionName = "1.0.12"
     manifestPlaceholders["ADMOB_APP_ID"] = configuredAdMobAppId
     buildConfigField("boolean", "ADS_ENABLED", adsEnabled.toString())
 
@@ -68,7 +69,7 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.findByName("release")
     }
@@ -94,22 +95,38 @@ secrets {
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
+ksp {
+  arg("room.schemaLocation", "$projectDir/schemas")
+  arg("room.incremental", "true")
+}
+
 tasks.withType<Test>().configureEach {
   // Conscrypt's native library lookup is locale-sensitive on Turkish Windows.
   systemProperty("user.language", "en")
   systemProperty("user.country", "US")
 }
 
+val releaseKeystoreFile = releaseKeystorePath?.let(rootProject::file)
+val googleServicesFile = project.file("google-services.json")
+val releaseEnvFile = rootProject.file(".env")
+
 val verifyReleaseConfiguration = tasks.register("verifyReleaseConfiguration") {
+  notCompatibleWithConfigurationCache(
+    "Release verification intentionally reads signing and environment files at execution time."
+  )
+  inputs.property("hasReleaseSigning", hasReleaseSigning)
+  releaseKeystoreFile?.let { inputs.file(it) }
+  inputs.file(googleServicesFile)
+  inputs.file(releaseEnvFile)
+
   doLast {
     require(hasReleaseSigning) {
       "Release build requires KEYSTORE_PATH, STORE_PASSWORD and KEY_PASSWORD."
     }
-    require(rootProject.file(requireNotNull(releaseKeystorePath)).isFile) {
+    require(releaseKeystoreFile?.isFile == true) {
       "KEYSTORE_PATH does not point to a signing key file."
     }
 
-    val googleServicesFile = project.file("google-services.json")
     require(googleServicesFile.isFile) {
       "Release build requires app/google-services.json from the Firebase project."
     }
@@ -117,10 +134,9 @@ val verifyReleaseConfiguration = tasks.register("verifyReleaseConfiguration") {
       "google-services.json must contain the com.gundemai.app Android app."
     }
 
-    val envFile = rootProject.file(".env")
-    require(envFile.isFile) { "Release build requires a configured root .env file." }
+    require(releaseEnvFile.isFile) { "Release build requires a configured root .env file." }
     val releaseEnv = Properties().apply {
-      envFile.reader(Charsets.UTF_8).use(::load)
+      releaseEnvFile.reader(Charsets.UTF_8).use(::load)
     }
     fun env(name: String) = releaseEnv.getProperty(name)?.trim().orEmpty()
 
@@ -186,11 +202,17 @@ dependencies {
   // Firebase Auth & Google Play Billing
   implementation(libs.firebase.auth)
   implementation(libs.firebase.messaging)
+  implementation(libs.firebase.analytics)
+  implementation(libs.firebase.config)
+  implementation(libs.firebase.crashlytics)
   implementation(libs.androidx.credentials)
   implementation(libs.androidx.credentials.play.services)
   implementation(libs.googleid)
   implementation(libs.google.mobile.ads)
   implementation(libs.google.ump)
+  implementation(libs.androidx.media3.exoplayer)
+  implementation(libs.androidx.media3.exoplayer.hls)
+  implementation(libs.androidx.media3.ui)
   implementation(libs.play.billing.ktx)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)

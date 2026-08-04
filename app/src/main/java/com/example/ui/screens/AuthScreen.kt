@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,6 +39,8 @@ import com.example.data.auth.AuthResult
 import com.example.ui.auth.buildGoogleButtonOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
+import com.example.ui.components.liquidGlassBackground
+import com.example.ui.theme.BrandNavy
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,17 +76,19 @@ fun AuthScreen(
     }
 
     Scaffold(
-        containerColor = primaryBg
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .liquidGlassBackground()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .navigationBarsPadding()
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -93,10 +98,10 @@ fun AuthScreen(
                 // App Logo & Header
                 Box(
                     modifier = Modifier
-                        .size(84.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(2.dp, accentBlue, CircleShape),
+                        .size(88.dp)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(BrandNavy)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(28.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     androidx.compose.foundation.Image(
@@ -113,7 +118,7 @@ fun AuthScreen(
                     Text(
                         text = "GündemAI",
                         fontSize = 28.sp,
-                        fontWeight = FontWeight.Black,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
@@ -129,8 +134,8 @@ fun AuthScreen(
                 AnimatedVisibility(visible = errorMessage != null) {
                     errorMessage?.let { msg ->
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
-                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            shape = RoundedCornerShape(18.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -138,8 +143,8 @@ fun AuthScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Error, contentDescription = null, tint = Color(0xFFFCA5A5))
-                                Text(msg, color = Color(0xFFFCA5A5), fontSize = 13.sp)
+                                Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                Text(msg, color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 13.sp)
                             }
                         }
                     }
@@ -147,11 +152,11 @@ fun AuthScreen(
 
                 // 1. Google Quick Sign-In Option
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = cardBg),
-                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBg.copy(alpha = 0.80f)),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -209,7 +214,7 @@ fun AuthScreen(
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -252,11 +257,11 @@ fun AuthScreen(
 
                 // 2. Email Auth Form Card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = cardBg),
-                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBg.copy(alpha = 0.80f)),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -266,40 +271,54 @@ fun AuthScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(4.dp)
                         ) {
-                            Button(
+                            Surface(
                                 onClick = { isRegisterMode = false },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (!isRegisterMode) accentBlue else Color.Transparent
-                                ),
+                                color = if (!isRegisterMode) accentBlue else Color.Transparent,
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("auth_mode_sign_in"),
                             ) {
-                                Text(
-                                    text = "Giriş Yap",
-                                    color = if (!isRegisterMode) Color.White else subTextColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "Giriş Yap",
+                                        color = if (!isRegisterMode) Color.White else subTextColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                }
                             }
 
-                            Button(
+                            Surface(
                                 onClick = { isRegisterMode = true },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isRegisterMode) accentBlue else Color.Transparent
-                                ),
+                                color = if (isRegisterMode) accentBlue else Color.Transparent,
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("auth_mode_register"),
                             ) {
-                                Text(
-                                    text = "Kayıt Ol",
-                                    color = if (isRegisterMode) Color.White else subTextColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "Kayıt Ol",
+                                        color = if (isRegisterMode) Color.White else subTextColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                }
                             }
                         }
 
@@ -312,7 +331,7 @@ fun AuthScreen(
                                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = accentBlue) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(18.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = accentBlue,
                                     unfocusedBorderColor = Color(0xFF475569),
@@ -333,7 +352,7 @@ fun AuthScreen(
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = accentBlue,
                                 unfocusedBorderColor = Color(0xFF475569),
@@ -363,7 +382,7 @@ fun AuthScreen(
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = accentBlue,
                                 unfocusedBorderColor = Color(0xFF475569),
@@ -424,7 +443,7 @@ fun AuthScreen(
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = accentBlue),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             enabled = !isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()

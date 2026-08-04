@@ -50,4 +50,16 @@ class AdMobConfigurationTest {
         assertFalse(shouldRequestBannerAds(false, adsEnabled = true, canRequestAds = false))
         assertTrue(shouldRequestBannerAds(false, adsEnabled = true, canRequestAds = true))
     }
+
+    @Test
+    fun remoteConfigCanDisableAdsWithoutAPlayStoreUpdate() {
+        assertFalse(
+            shouldRequestBannerAds(
+                isProUser = false,
+                adsEnabled = true,
+                canRequestAds = true,
+                remoteAdsEnabled = false,
+            ),
+        )
+    }
 }

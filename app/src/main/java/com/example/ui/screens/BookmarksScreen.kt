@@ -25,12 +25,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.NewsArticle
 import com.example.ui.components.NewsCard
+import com.example.ui.components.GlassEmptyState
+import com.example.ui.components.liquidGlassBackground
 
 @Composable
 fun BookmarksScreen(
     bookmarkedArticles: List<NewsArticle>,
     onArticleClick: (articleId: String) -> Unit,
     onBookmarkToggle: (articleId: String, currentStatus: Boolean) -> Unit,
+    onBrowseNews: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val bgColor = MaterialTheme.colorScheme.background
@@ -61,7 +64,7 @@ fun BookmarksScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(bgColor)
+            .liquidGlassBackground()
     ) {
         if (bookmarkedArticles.isEmpty()) {
             Box(
@@ -70,56 +73,13 @@ fun BookmarksScreen(
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                                .background(accentBlue.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.BookmarkBorder,
-                                contentDescription = null,
-                                tint = accentBlue,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        Text(
-                            text = "Henüz Kaydedilmiş Haber Yok",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = primaryTextColor,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Text(
-                            text = "İlginizi çeken haberleri daha sonra internetiniz olmadığında bile rahatça okumak için kaydet simgesine dokunabilirsiniz.",
-                            fontSize = 13.sp,
-                            color = secondaryTextColor,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 19.sp
-                        )
-                    }
-                }
+                GlassEmptyState(
+                    icon = Icons.Default.BookmarkBorder,
+                    title = "Henüz kaydedilmiş haber yok",
+                    message = "İlgini çeken haberleri kaydet; çevrimdışıyken bile yeniden okuyabilirsin.",
+                    actionLabel = "Gündeme göz at",
+                    onAction = onBrowseNews,
+                )
             }
         } else {
             LazyColumn(
@@ -148,14 +108,14 @@ fun BookmarksScreen(
                                 Text(
                                     text = "Kaydedilenler",
                                     fontSize = 20.sp,
-                                    fontWeight = FontWeight.Black,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = primaryTextColor
                                 )
                             }
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(18.dp))
                                     .background(accentBlue.copy(alpha = 0.15f))
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
@@ -172,9 +132,9 @@ fun BookmarksScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(Color(0xFF10B981).copy(alpha = 0.12f))
-                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.25f), RoundedCornerShape(18.dp))
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -209,7 +169,7 @@ fun BookmarksScreen(
                                 }
                             },
                             singleLine = true,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = cardBgColor,
                                 unfocusedContainerColor = cardBgColor,
@@ -233,9 +193,9 @@ fun BookmarksScreen(
                                     val isSelected = selectedCategory == cat
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(RoundedCornerShape(18.dp))
                                             .background(if (isSelected) accentBlue else cardBgColor)
-                                            .border(1.dp, if (isSelected) accentBlue else cardBorderColor, RoundedCornerShape(8.dp))
+                                            .border(1.dp, if (isSelected) accentBlue else cardBorderColor, RoundedCornerShape(18.dp))
                                             .clickable { selectedCategory = cat }
                                             .padding(horizontal = 14.dp, vertical = 6.dp)
                                     ) {
@@ -276,7 +236,6 @@ fun BookmarksScreen(
                         NewsCard(
                             article = article,
                             onClick = { onArticleClick(article.id) },
-                            onBookmarkToggle = { onBookmarkToggle(article.id, article.isBookmarked) }
                         )
                     }
                 }

@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Category
 import com.example.data.model.FollowedTopic
+import com.example.ui.components.liquidGlassBackground
+import com.example.ui.theme.BrandTeal
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -42,26 +44,30 @@ fun OnboardingScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             Surface(
-                color = MaterialTheme.colorScheme.background,
-                tonalElevation = 8.dp,
+                color = Color.Transparent,
                 modifier = Modifier.padding(16.dp)
             ) {
-                Button(
+                Surface(
                     onClick = { onComplete(selectedCategories, selectedTopics) },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color.Transparent,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
+                        .background(BrandTeal, RoundedCornerShape(18.dp))
                         .testTag("onboarding_start_button")
                 ) {
-                    Text(
-                        text = "GündemAI'ye Başla",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "GündemAI'ye Başla",
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -70,6 +76,7 @@ fun OnboardingScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .liquidGlassBackground()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -96,7 +103,7 @@ fun OnboardingScreen(
                     Text(
                         text = "GündemAI'ye Hoş Geldiniz",
                         style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Black,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -126,7 +133,7 @@ fun OnboardingScreen(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(18.dp))
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.surfaceContainer
@@ -134,7 +141,7 @@ fun OnboardingScreen(
                             .border(
                                 1.dp,
                                 if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                RoundedCornerShape(8.dp)
+                                RoundedCornerShape(18.dp)
                             )
                             .clickable {
                                 selectedCategories = if (isSelected) {
@@ -199,7 +206,7 @@ fun OnboardingScreen(
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                         } else null,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(18.dp)
                     )
                 }
             }

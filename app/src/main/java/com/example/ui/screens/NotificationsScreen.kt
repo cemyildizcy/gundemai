@@ -25,6 +25,10 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.UserNotification
 import com.example.data.model.Category
 import com.example.util.DateUtils
+import com.example.ui.components.liquidGlassBackground
+import com.example.ui.presentation.notificationSectionLabel
+import com.example.ui.presentation.shouldOutlineNotificationCategory
+import com.example.ui.theme.BrandTeal
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -59,11 +63,17 @@ fun NotificationsScreen(
             else -> notifications
         }
     }
+    val notificationSections = remember(filteredNotifications) {
+        val grouped = filteredNotifications.groupBy { notificationSectionLabel(it.timestamp) }
+        listOf("Bugün", "Dün", "Daha önce").mapNotNull { label ->
+            grouped[label]?.takeIf { it.isNotEmpty() }?.let { label to it }
+        }
+    }
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(bgColor),
+            .liquidGlassBackground(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -88,7 +98,7 @@ fun NotificationsScreen(
                         Text(
                             text = "Anında Bildirimler",
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.SemiBold,
                             color = primaryTextColor
                         )
                     }
@@ -96,7 +106,7 @@ fun NotificationsScreen(
                     if (unreadCount > 0) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(Color(0xFFEF4444).copy(alpha = 0.2f))
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
@@ -119,9 +129,9 @@ fun NotificationsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(18.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -145,11 +155,11 @@ fun NotificationsScreen(
         // --- 1. KATEGORİ BİLDİRİM TERCİHLERİ CARD ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+                shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                    .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -205,12 +215,12 @@ fun NotificationsScreen(
 
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isEnabled) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(if (isEnabled) BrandTeal else MaterialTheme.colorScheme.surfaceVariant)
                                         .border(
-                                            1.dp,
-                                            if (isEnabled) Color(0xFF10B981) else cardBorderColor,
-                                            RoundedCornerShape(8.dp)
+                                            if (shouldOutlineNotificationCategory(isEnabled)) 1.dp else 0.dp,
+                                            if (shouldOutlineNotificationCategory(isEnabled)) cardBorderColor else Color.Transparent,
+                                            RoundedCornerShape(18.dp)
                                         )
                                         .clickable { onCategoryToggle(category) }
                                         .padding(horizontal = 12.dp, vertical = 7.dp)
@@ -257,9 +267,9 @@ fun NotificationsScreen(
                         val isSel = selectedFilter == filter
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(18.dp))
                                 .background(if (isSel) accentBlue else cardBgColor)
-                                .border(1.dp, if (isSel) accentBlue else cardBorderColor, RoundedCornerShape(8.dp))
+                                .border(1.dp, if (isSel) accentBlue else cardBorderColor, RoundedCornerShape(18.dp))
                                 .clickable { selectedFilter = filter }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
@@ -309,11 +319,11 @@ fun NotificationsScreen(
         if (filteredNotifications.isEmpty()) {
             item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
-                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBgColor.copy(alpha = 0.78f)),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, cardBorderColor, RoundedCornerShape(8.dp))
+                        .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
                 ) {
                     Column(
                         modifier = Modifier
@@ -346,21 +356,35 @@ fun NotificationsScreen(
                 }
             }
         } else {
-            items(
-                items = filteredNotifications,
-                key = { notif -> notif.id }
-            ) { notif ->
+            notificationSections.forEach { (sectionLabel, sectionItems) ->
+                item(key = "notification_section_$sectionLabel") {
+                    Text(
+                        text = sectionLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(top = 4.dp, start = 4.dp),
+                    )
+                }
+                items(
+                    items = sectionItems,
+                    key = { notif -> notif.id }
+                ) { notif ->
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = if (notif.isRead) cardBgColor.copy(alpha = 0.6f) else cardBgColor
+                        containerColor = if (notif.isRead) {
+                            cardBgColor.copy(alpha = 0.54f)
+                        } else {
+                            cardBgColor.copy(alpha = 0.82f)
+                        }
                     ),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(18.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(
                             1.dp,
                             if (notif.isRead) cardBorderColor.copy(alpha = 0.5f) else accentBlue.copy(alpha = 0.4f),
-                            RoundedCornerShape(8.dp)
+                            RoundedCornerShape(18.dp)
                         )
                         .clickable {
                             onMarkRead(notif.id)
@@ -407,7 +431,7 @@ fun NotificationsScreen(
                                             modifier = Modifier
                                                 .size(7.dp)
                                                 .clip(CircleShape)
-                                                .background(accentBlue)
+                                                .background(BrandTeal)
                                         )
                                     }
                                     Text(
@@ -436,6 +460,7 @@ fun NotificationsScreen(
                         }
                     }
                 }
+            }
             }
         }
     }

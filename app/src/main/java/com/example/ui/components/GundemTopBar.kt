@@ -1,26 +1,26 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,14 +35,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.data.model.Category
+import com.example.ui.theme.GundemDesignTokens
+import com.example.ui.theme.BrandTeal
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GundemTopBar(
     selectedCategory: String,
@@ -51,130 +50,108 @@ fun GundemTopBar(
     onSearchQueryChange: (String) -> Unit,
     onSearchSubmit: () -> Unit,
     onRefreshClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        tonalElevation = 0.dp,
+    Column(
         modifier = modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
+            .padding(top = 8.dp),
     ) {
-        Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(11.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Image(
-                        painter = painterResource(com.example.R.drawable.gundemai_logo_mark),
-                        contentDescription = "GündemAI",
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "GündemAI",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = "Ortak yapay zeka analizi",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = onRefreshClick,
-                    modifier = Modifier.testTag("refresh_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Haberleri yenile",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Image(
+                    painter = painterResource(com.example.R.drawable.gundemai_logo_mark),
+                    contentDescription = "GündemAI",
+                    modifier = Modifier.size(36.dp),
+                )
+                Text(
+                    text = "GündemAI",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
             }
-
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = {
-                    Text(
-                        text = "Haber, kişi veya kurum ara",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Aramayı temizle")
-                        }
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        onSearchSubmit()
-                        focusManager.clearFocus()
-                    }
-                ),
-                shape = RoundedCornerShape(8.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(56.dp)
-                    .testTag("search_input_field")
+            GlassIconButton(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Haberleri yenile",
+                onClick = onRefreshClick,
+                modifier = Modifier.testTag("refresh_button"),
             )
+        }
 
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 16.dp,
-                    vertical = 8.dp,
-                ),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(Category.FEED_FILTER_CATEGORIES, key = { it.id }) { category ->
-                    val selected = category.displayName.equals(selectedCategory, ignoreCase = true)
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onCategorySelected(category.displayName) },
-                        label = {
-                            Text(category.displayName, style = MaterialTheme.typography.labelMedium)
-                        },
-                        shape = RoundedCornerShape(7.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White,
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.testTag("category_pill_${category.id}")
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            placeholder = { Text("Haber, kişi veya kurum ara") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = BrandTeal) },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChange("") }) {
+                        Icon(Icons.Default.Close, contentDescription = "Aramayı temizle")
+                    }
+                }
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    onSearchSubmit()
+                    focusManager.clearFocus()
+                }
+            ),
+            shape = RoundedCornerShape(GundemDesignTokens.controlRadius),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = BrandTeal,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp)
+                .heightIn(min = 56.dp)
+                .testTag("search_input_field"),
+        )
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(Category.FEED_FILTER_CATEGORIES, key = { it.id }) { category ->
+                val selected = category.displayName.equals(selectedCategory, ignoreCase = true)
+                Surface(
+                    onClick = { onCategorySelected(category.displayName) },
+                    shape = RoundedCornerShape(GundemDesignTokens.smallRadius),
+                    color = if (selected) BrandTeal else MaterialTheme.colorScheme.surface,
+                    contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    border = BorderStroke(
+                        1.dp,
+                        if (selected) BrandTeal else MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                    shadowElevation = if (selected) 4.dp else 1.dp,
+                    modifier = Modifier.testTag("category_pill_${category.id}"),
+                ) {
+                    Text(
+                        text = category.displayName,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
                     )
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }

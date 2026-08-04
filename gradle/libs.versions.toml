@@ -37,13 +37,15 @@ moshiKotlinCodegen = "1.15.2"
 datastorePreferences = "1.1.7"
 robolectric = "4.16.1"
 roborazzi = "1.59.0"
-firebaseBom = "34.15.0"
+firebaseBom = "34.16.0"
 secretsGradlePlugin = "2.0.1"
 googleServices = "4.5.0"
+firebaseCrashlyticsPlugin = "3.0.7"
 credentials = "1.6.0"
 googleid = "1.2.0"
 googleMobileAds = "25.4.0"
 googleUmp = "4.0.0"
+media3 = "1.10.1"
 
 
 [libraries]
@@ -99,11 +101,17 @@ firebase-appcheck-recaptcha = { group = "com.google.firebase", name = "firebase-
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 google-mobile-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "googleMobileAds" }
 google-ump = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "googleUmp" }
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-exoplayer-hls = { group = "androidx.media3", name = "media3-exoplayer-hls", version.ref = "media3" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version = "2.10.0" }
 play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version = "9.1.0" }
 
@@ -115,3 +123,4 @@ google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDev
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }

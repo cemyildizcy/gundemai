@@ -14,6 +14,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.BuildConfig
 import com.example.data.ads.AdConsentManager
+import com.example.data.config.RemoteFeatureFlags
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
@@ -38,7 +39,14 @@ fun AdMobTestAdaptiveBanner(
 private fun AdMobBanner(isProUser: Boolean, modifier: Modifier) {
     if (isProUser || !BuildConfig.ADS_ENABLED) return
     val canRequestAds by AdConsentManager.canRequestAds.collectAsStateWithLifecycle()
-    if (!shouldRequestBannerAds(isProUser, BuildConfig.ADS_ENABLED, canRequestAds)) return
+    val remoteAdsEnabled by RemoteFeatureFlags.adsEnabled.collectAsStateWithLifecycle()
+    if (!shouldRequestBannerAds(
+            isProUser = isProUser,
+            adsEnabled = BuildConfig.ADS_ENABLED,
+            canRequestAds = canRequestAds,
+            remoteAdsEnabled = remoteAdsEnabled,
+        )
+    ) return
 
     val adViewState = remember { mutableStateOf<AdView?>(null) }
     DisposableEffect(Unit) {
